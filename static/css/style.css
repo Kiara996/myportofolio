@@ -179,23 +179,122 @@ h1, .brand {
     border: 3px solid var(--ink);
 }
 
-/*Section Skills dengan CSS Grid
+/*Section Skills
 */
+.section-title {
+    font-family: "Space Grotesk", -apple-system, sans-serif;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+}
+
+.section-desc {
+    color: var(--text-muted);
+    max-width: 520px;
+    margin-bottom: 2rem;
+}
+
 .skills {
-    padding: 0 0 0;
+    padding: 4.5rem 0;
 }
 
 .skills-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
-    padding: 4.5rem 0 5rem;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
 }
 
-.skills-icon {
-    display:flex;
-    width: 50px;
-    height: 50px;
+.skill-card {
+    background-color: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.skill-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(28, 25, 23, 0.08);
+    border-color: var(--accent);
+}
+
+.skill-card h3 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--accent-dark);
+    margin-bottom: 1.1rem;
+}
+
+.skill-icons {
+    display: flex;
+    gap: 1.1rem;
+    flex-wrap: wrap;
+}
+
+.skill-icons img {
+    width: 38px;
+    height: 38px;
+    object-fit: contain;
+    filter: grayscale(35%);
+    transition: filter 0.2s ease, transform 0.2s ease;
+}
+
+.skill-icons img:hover {
+    filter: none;
+    transform: scale(1.12);
+}
+
+/* Section Portfolio Photography
+*/
+.portfolio {
+    padding: 0 0 5rem;
+}
+
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+}
+
+.portfolio-item {
+    position: relative;
+    margin: 0;
+    overflow: hidden;
+    border-radius: var(--radius);
+    aspect-ratio: 4 / 3;
+}
+
+.portfolio-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.35s ease;
+}
+
+.portfolio-item figcaption {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 0.75rem 1rem;
+    background: linear-gradient(to top, rgba(28, 25, 23, 0.75), transparent);
+    color: var(--paper);
+    font-size: 0.85rem;
+    font-weight: 600;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.portfolio-item:hover img {
+    transform: scale(1.06);
+}
+
+.portfolio-item:hover figcaption {
+    opacity: 1;
+    transform: translateY(0);
 }
 
 

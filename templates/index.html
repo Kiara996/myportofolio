@@ -15,11 +15,15 @@
             <a href="#profile" class="brand">Kevin Fauzan</a>
             <nav>
                 <a href="#profile">Profile</a>
+                <a href="#skills">Skills</a>
+                <a href="#portfolio">Portfolio</a>
             </nav>
         </div>
     </header>
 
     <main>
+
+        <!-- Section Profile -->
         <section class="hero" id="profile">
             <div class="container hero-grid">
                 <div class="hero-identity">
@@ -50,28 +54,56 @@
                 </div>
             </div>
         </section>
+
+        <!-- Section Skills Multimedia & Programming -->
         <section class="skills" id="skills">
-            <div class="container skills-grid">
-                <div class="skills-identity">
-                    <h2>My Skills</h2>
-                    <dl class="meta-list">
-                        <div class="meta-row">
-                            <dt>Multimedia</dt>
-                            <div class="skills-icon">
-                                <img class="premiere-pro" src="/static/img/icons/multimedia/adobe-premiere-svgrepo-com.svg" alt="Adobe Premiere Pro">
-                                <img class="photoshop" src="/static/img/icons/multimedia/adobe-photoshop-svgrepo-com.svg" alt="Adobe Photoshop">
-                                <img class="illustrator" src="/static/img/icons/multimedia/adobe-illustrator-svgrepo-com.svg" alt="Adobe Illustrator">
-                                <img class="after-effects" src="/static/img/icons/multimedia/adobe-after-effects-svgrepo-com.svg" alt="Adobe After Effects">
-                            </div>
-                            <dt>Programming Language</dt>
-                            <div class="skills-icon">
-                                <img class="python" src="/static/img/icons/programming/python-svgrepo-com.svg" alt="Python">
-                                <img class="java" src="/static/img/icons/programming/java-svgrepo-com.svg" alt="Java">
-                                <img class="javascript" src="/static/img/icons/programming/javascript-svgrepo-com.svg" alt="JavaScript">
-                                <img class="typescript" src="/static/img/icons/programming/typescript-official-svgrepo-com.svg" alt="TypeScript">
-                            </div>
+            <div class="container">
+                <h2 class="section-title">Skills</h2>
+                <div class="skills-grid">
+                    <div class="skill-card">
+                        <h3>Multimedia</h3>
+                        <div class="skill-icons">
+                            <img src="/static/img/icons/multimedia/adobe-premiere-svgrepo-com.svg" alt="Adobe Premiere Pro" title="Adobe Premiere Pro">
+                            <img src="/static/img/icons/multimedia/adobe-photoshop-svgrepo-com.svg" alt="Adobe Photoshop" title="Adobe Photoshop">
+                            <img src="/static/img/icons/multimedia/adobe-illustrator-svgrepo-com.svg" alt="Adobe Illustrator" title="Adobe Illustrator">
+                            <img src="/static/img/icons/multimedia/adobe-after-effects-svgrepo-com.svg" alt="Adobe After Effects" title="Adobe After Effects">
                         </div>
-                    </dl>
+                    </div>
+                    <div class="skill-card">
+                        <h3>Programming Language</h3>
+                        <div class="skill-icons">
+                            <img src="/static/img/icons/programming/python-svgrepo-com.svg" alt="Python" title="Python">
+                            <img src="/static/img/icons/programming/java-svgrepo-com.svg" alt="Java" title="Java">
+                            <img src="/static/img/icons/programming/javascript-svgrepo-com.svg" alt="JavaScript" title="JavaScript">
+                            <img src="/static/img/icons/programming/typescript-official-svgrepo-com.svg" alt="TypeScript" title="TypeScript">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Section Portfolio Photography -->
+        <section class="portfolio" id="portfolio">
+            <div class="container">
+                <h2 class="section-title">Portfolio</h2>
+                <p class="section-desc">Some of my moments captured</p>
+                <div class="portfolio-grid">
+                    <figure class="portfolio-item">
+                        <img src="/static/img/portfolio/photo-1.jpeg" alt="Foto potret pedesaan">
+                        <figcaption>Village Life</figcaption>
+                    </figure>
+                    <figure class="portfolio-item">
+                        <img src="/static/img/portfolio/photo-2.jpeg" alt="Foto lorong">
+                        <figcaption>Lorong</figcaption>
+                    </figure>
+                    <figure class="portfolio-item">
+                        <img src="/static/img/portfolio/photo-3.jpeg" alt="Foto pemandangan perbukitan">
+                        <figcaption>Hilly Views</figcaption>
+                    </figure>
+                    <figure class="portfolio-item">
+                        <img src="/static/img/portfolio/photo-4.jpeg" alt="Foto jalan asrama UI">
+                        <figcaption>Street Morning</figcaption>
+                    </figure>
                 </div>
             </div>
         </section>
