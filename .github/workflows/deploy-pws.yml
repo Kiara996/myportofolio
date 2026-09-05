@@ -88,9 +88,9 @@ jobs:
 
             - name: Push ke PWS
               env:
-                  PWS_USERNAME: ${{ secrets.PWS_USERNAME }}
-                  PWS_PASSWORD: ${{ secrets.PWS_PASSWORD }}
-                  PWS_REMOTE_URL: ${{ secrets.PWS_REMOTE_URL }}
+                    PWS_USERNAME: ${{ secrets.PWS_USERNAME }}
+                    PWS_PASSWORD: ${{ secrets.PWS_PASSWORD }}
+                    PWS_REMOTE_URL: ${{ secrets.PWS_REMOTE_URL }}
               run: |
                   HOST_AND_PATH=$(echo "$PWS_REMOTE_URL" | sed -E 's#^https?://##')
                   AUTH_URL="https://${PWS_USERNAME}:${PWS_PASSWORD}@${HOST_AND_PATH}"
