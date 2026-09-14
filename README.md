@@ -10,6 +10,8 @@ HTML5 + CSS3, isinya:
 - **Profile** - bio singkat dan kontak
 - **Skills** - tools/bahasa yang dikuasai, dibagi per kategori (Multimedia & Programming)
 - **Portfolio** - galeri foto
+- **Photography** - halaman untuk menampilkan karya fotografi
+- **Experience** - halaman untuk menampilkan pengalaman selama berkuliah
 
 ## Tech Stack
 
@@ -46,9 +48,10 @@ myportofolio/
 
 ## Dokumentasi Tugas Mingguan
 
-Jawaban pertanyaan reflektif dan catatan pengerjaan tiap minggu ada di folder `docs/tugas/`, terpisah dari README ini agar lebih rapi.
+Jawaban pertanyaan reflektif dan catatan pengerjaan setiap minggu (disimpan folder `docs/tugas/`, terpisah dari README ini agar lebih rapi).
 
 - [Tugas 1 - Static Web with HTML5 and CSS3](docs/tugas/tugas1.md)
+- [Tugas 2 - Implementasi MVT pada Django](docs/tugas/tugas2.md)
 
 ## Deployment
 
