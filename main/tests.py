@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from main.models import Experience
+from main.models import Experience, Photograph
 
 
 class MainTest(TestCase):
@@ -56,3 +56,29 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
+        
+class PhotographyPageTest(TestCase):
+    def setUp(self):
+        self.photograph = Photograph.objects.create(
+            title="Golden Hour di Rooftop Fasilkom",
+            story="Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
+            camera_gear="Fujifilm X-T30 II, lensa 35mm f/1.4",
+            capture_settings="f/2.0, 1/500s, ISO 200",
+            editing_software="lightroom",
+            location_taken="Rooftop Gedung A Fasilkom UI",
+        )
+
+    def test_photography_url_is_accessible(self):
+        response = self.client.get(reverse("main:show_photography"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "photography.html")
+
+    def test_photograph_story_appears_when_data_exists(self):
+        response = self.client.get(reverse("main:show_photography"))
+        self.assertContains(response, self.photograph.title)
+        self.assertContains(response, self.photograph.camera_gear)
+
+    def test_empty_state_shown_when_no_photograph_yet(self):
+        Photograph.objects.all().delete()
+        response = self.client.get(reverse("main:show_photography"))
+        self.assertContains(response, "Belum ada cerita foto")

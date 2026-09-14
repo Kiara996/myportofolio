@@ -352,6 +352,117 @@ h1, .brand {
     font-weight: 600;
 }
 
+/* Section Photography */
+.photography-section {
+    padding: 4rem 0 5rem;
+}
+
+.photograph-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.photograph-card {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    background-color: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 1.25rem;
+}
+
+.photograph-frame {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: var(--radius);
+}
+
+.photograph-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.photograph-title {
+    font-family: "Space Grotesk", -apple-system, sans-serif;
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+}
+
+.photograph-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.75rem;
+    background-color: var(--paper);
+    border-radius: var(--radius);
+}
+
+.photograph-meta-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+}
+
+.photograph-meta-row dt {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+}
+
+.photograph-meta-row dd {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.photograph-story {
+    color: var(--text-muted);
+    line-height: 1.7;
+}
+
+/* Tablet ke atas*/
+@media (min-width: 700px) {
+    .photograph-card {
+        flex-direction: row;
+        align-items: flex-start;
+        padding: 1.5rem;
+    }
+
+    .photograph-frame {
+        flex: 0 0 280px;
+        aspect-ratio: 1 / 1;
+    }
+
+    .photograph-detail {
+        flex: 1;
+    }
+
+    .photograph-meta-row {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+    }
+}
+
+/* Desktop*/
+@media (min-width: 1000px) {
+    .photograph-frame {
+        flex: 0 0 340px;
+    }
+
+    .photograph-story {
+        max-width: 560px;
+    }
+}
+
 
 /*Footer & Responsive
 */
