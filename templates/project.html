@@ -6,9 +6,25 @@
 <main>
     <section class="project-section" id="project">
         <div class="container">
-            <p class="section-kicker">Cerita di balik lensa</p>
-            <h1>Project</h1>
-            <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
+            <div class="project-header">
+                <div>
+                    <p class="section-kicker">Cerita di balik lensa</p>
+                    <h1>Project</h1>
+                    <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
+                </div>
+            </div>
+
+            <form method="get"
+                action="{% url 'main:show_project' %}"
+                class="project-search">
+                <input type="search"
+                    name="title"
+                    value="{{ title_query }}"
+                    placeholder="Cari berdasarkan nama proyek"
+                    class="project-search__input"
+                    aria-label="Cari berdasarkan nama proyek">
+                <button type="submit" class="button">Cari</button>
+            </form>
 
             <div class="project-gallery">
                 {% for project in featured_project %}
@@ -47,10 +63,17 @@
                                 {% endif %}
                             </dl>
                             <p class="project-story">{{ project.story }}</p>
+                            <div class="project-actions">
+                                {% include "components/project_delete_modal.html" with project=project %}
+                            </div>
                         </div>
                     </article>
                 {% empty %}
-                    <p class="empty-state">Belum ada cerita foto yang ditambahkan. Nantikan update berikutnya.</p>
+                    {% if title_query %}
+                        <p class="empty-state">Tidak ada proyek dengan nama tersebut.</p>
+                    {% else %}
+                        <p class="empty-state">Belum ada cerita foto yang ditambahkan. Nantikan update berikutnya.</p>
+                    {% endif %}
                 {% endfor %}
             </div>
         </div>

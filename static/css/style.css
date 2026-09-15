@@ -696,6 +696,12 @@ main section[id] {
     margin-top: 0.35rem;
 }
 
+.form-help {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: 0.35rem;
+}
+
 .button {
     display: inline-block;
     height: fit-content;
@@ -712,6 +718,164 @@ main section[id] {
 
 .button-secondary {
     background: var(--ink);
+}
+
+.button-danger {
+    background: #b42318;
+}
+
+/* Project header, search, delete */
+.project-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.project-add-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+}
+
+.project-add-button span {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.project-search {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.project-search__input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+
+.project-search__input:focus {
+    outline: 2px solid var(--accent);
+    border-color: var(--accent);
+}
+
+.project-actions {
+    margin-top: 1rem;
+}
+
+.project-delete-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 1rem;
+    border: 0;
+    background: transparent;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+}
+
+.project-delete-modal:popover-open {
+    display: flex;
+}
+
+.project-delete-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    background: rgba(28, 25, 23, 0.58);
+    cursor: default;
+}
+
+.project-delete-modal__content {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 480px);
+    padding: 1.5rem;
+    background: var(--paper);
+    border: var(--border-w) solid var(--ink);
+    box-shadow: var(--shadow-off) var(--shadow-off) 0 0 var(--ink);
+}
+
+.project-delete-modal__content h2 {
+    margin: 0 0 0.75rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+}
+
+.project-delete-modal__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.project-delete-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 600px) {
+    .project-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .project-add-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .project-search {
+        flex-direction: column;
+    }
+
+    .project-search .button {
+        width: 100%;
+    }
+
+    .project-delete-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .project-delete-modal__content {
+        width: 100%;
+        padding: 1.25rem;
+    }
+
+    .project-delete-modal__actions {
+        flex-direction: column-reverse;
+    }
+
+    .project-delete-modal__actions .button {
+        width: 100%;
+        text-align: center;
+    }
 }
 
 /* Tablet ke atas */

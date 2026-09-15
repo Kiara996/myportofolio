@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.forms import DateInput, ModelForm, TextInput, Textarea, URLInput, Select, PasswordInput, CharField
 
 from main.models import Project
@@ -8,6 +9,20 @@ class ProjectForm(ModelForm):
         label="Koentji",
         required=True
     )
+
+    def clean_image_url(self):
+        image_url = self.cleaned_data.get("image_url") or ""
+
+        if "drive.google.com" in image_url and "thumbnail?id=" not in image_url:
+            raise ValidationError(
+                """Link Google Drive harus dalam format thumbnail, contoh: 
+                https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000. 
+                Link folder atau link 'file/d/.../view' tidak bisa ditampilkan 
+                sebagai gambar."""
+            )
+
+        return image_url
+
     class Meta:
         model = Project
         fields = [
@@ -30,6 +45,15 @@ class ProjectForm(ModelForm):
             "location_taken": "Lokasi Foto Diambil",
             "taken_at": "Waktu Foto Diambil",
             "image_url": "URL Gambar",
+        }
+
+        help_texts = {
+            "image_url": (
+                "Kalau pakai Google Drive klik kanan gambar > Share > "
+                "\"Anyone with the link\", lalu ambil FILE_ID dari link tersebut "
+                "dan susun jadi https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000. "
+                "Link folder atau link 'view' biasa tidak akan tampil."
+            ),
         }
 
         widgets = {
