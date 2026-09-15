@@ -63,9 +63,6 @@
                                 {% endif %}
                             </dl>
                             <p class="project-story">{{ project.story }}</p>
-                            <div class="project-actions">
-                                {% include "components/project_delete_modal.html" with project=project %}
-                            </div>
                         </div>
                     </article>
                 {% empty %}
