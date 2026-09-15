@@ -30,7 +30,7 @@ SECRET_KEY = 'django-insecure-1@jirc5wzvw^g6yufu0$hsz94jaxdn=%a8strldmctu(ewdh16
 PORTOFOLIO_SECRET = os.getenv('PORTOFOLIO_SECRET', 'default_secret_value')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "kevin-fauzan-myportofolio.pws.cs.ui.ac.id"]
 
