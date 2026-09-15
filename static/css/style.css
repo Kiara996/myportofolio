@@ -154,7 +154,7 @@ main section[id] {
 .skills,
 .portfolio,
 .experience-section,
-.photography-section {
+.project-section {
     position: relative;
 }
 
@@ -162,7 +162,7 @@ main section[id] {
 .skills::before,
 .portfolio::before,
 .experience-section::before,
-.photography-section::before {
+.project-section::before {
     content: "";
     position: absolute;
     z-index: 2;
@@ -210,7 +210,7 @@ main section[id] {
         16px 16px 0 0 var(--paper);
 }
 
-.photography-section::before {
+.project-section::before {
     top: 0;
     right: 1.5rem;
     background: var(--ink);
@@ -225,7 +225,7 @@ main section[id] {
     .skills::before,
     .portfolio::before,
     .experience-section::before,
-    .photography-section::before {
+    .project-section::before {
         display: none;
     }
 }
@@ -444,7 +444,7 @@ main section[id] {
     transform: scale(1.12);
 }
 
-/* Section Portfolio (Photography) */
+/* Section Portfolio (Project) */
 .portfolio {
     padding: 0 0 5rem;
 }
@@ -519,13 +519,13 @@ main section[id] {
 }
 
 .experience-section h1,
-.photography-section h1 {
+.project-section h1 {
     margin: 0.4rem 0 1.5rem;
     font-size: 2rem;
 }
 
 .experience-section h1::before,
-.photography-section h1::before {
+.project-section h1::before {
     content: "> ";
     color: var(--accent);
 }
@@ -578,19 +578,19 @@ main section[id] {
     font-weight: 700;
 }
 
-/* Photography */
-.photography-section {
+/* Project */
+.project-section {
     padding: 4.5rem 0 5rem;
 }
 
-.photograph-gallery {
+.project-gallery {
     display: flex;
     flex-direction: column;
     gap: 2rem;
     margin-top: 2rem;
 }
 
-.photograph-card {
+.project-card {
     display: flex;
     flex-direction: column;
     gap: 1.25rem;
@@ -600,27 +600,27 @@ main section[id] {
     padding: 1.25rem;
 }
 
-.photograph-frame {
+.project-frame {
     width: 100%;
     aspect-ratio: 4 / 3;
     overflow: hidden;
     border: 2px solid var(--ink);
 }
 
-.photograph-frame img {
+.project-frame img {
     width: 100%;
     height: 100%;
     object-fit: cover;
     display: block;
 }
 
-.photograph-title {
+.project-title {
     font-family: var(--font-display);
     font-size: 1.4rem;
     margin-bottom: 0.75rem;
 }
 
-.photograph-meta {
+.project-meta {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
@@ -630,13 +630,13 @@ main section[id] {
     border: 2px solid var(--line);
 }
 
-.photograph-meta-row {
+.project-meta-row {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
 }
 
-.photograph-meta-row dt {
+.project-meta-row dt {
     font-family: var(--font-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
@@ -644,34 +644,94 @@ main section[id] {
     color: var(--text-muted);
 }
 
-.photograph-meta-row dd {
+.project-meta-row dd {
     font-size: 0.9rem;
     font-weight: 600;
 }
 
-.photograph-story {
+.project-story {
     color: var(--text-muted);
     line-height: 1.7;
 }
 
+/* Project Form */
+.project-form {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 1.5rem;
+}
+
+.form-group {
+    margin-bottom: 1.25rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 700;
+}
+
+.form-group input,
+.form-group textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.7rem;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    font: inherit;
+    transition:
+        border-color 0.2s ease,
+        outline-color 0.2s ease;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: 2px solid var(--accent);
+    border-color: var(--accent);
+}
+
+.form-error {
+    color: #b42318;
+    font-size: 0.85rem;
+    margin-top: 0.35rem;
+}
+
+.button {
+    display: inline-block;
+    height: fit-content;
+    border: 0;
+    border-radius: var(--radius);
+    padding: 0.65rem 1rem;
+    background: var(--accent);
+    color: white;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.button-secondary {
+    background: var(--ink);
+}
+
 /* Tablet ke atas */
 @media (min-width: 700px) {
-    .photograph-card {
+    .project-card {
         flex-direction: row;
         align-items: flex-start;
         padding: 1.5rem;
     }
 
-    .photograph-frame {
+    .project-frame {
         flex: 0 0 280px;
         aspect-ratio: 1 / 1;
     }
 
-    .photograph-detail {
+    .project-detail {
         flex: 1;
     }
 
-    .photograph-meta-row {
+    .project-meta-row {
         flex-direction: row;
         justify-content: space-between;
         align-items: baseline;
@@ -681,11 +741,11 @@ main section[id] {
 
 /* Desktop */
 @media (min-width: 1000px) {
-    .photograph-frame {
+    .project-frame {
         flex: 0 0 340px;
     }
 
-    .photograph-story {
+    .project-story {
         max-width: 560px;
     }
 }

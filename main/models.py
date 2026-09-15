@@ -25,8 +25,7 @@ class Experience(models.Model):
     def is_ongoing(self):
         return self.ended_at is None
 
-
-class Photograph(models.Model):
+class Project(models.Model):
     EDITING_SOFTWARE_CHOICES = [
         ('lightroom', 'Adobe Lightroom'),
         ('photoshop', 'Adobe Photoshop'),

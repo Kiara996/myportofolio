@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Project - {{ name }}{% endblock title %}
+
+{% block content %}
+<main>
+    <section class="project-section" id="project">
+        <div class="container">
+            <p class="section-kicker">Cerita di balik lensa</p>
+            <h1>Project</h1>
+            <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
+
+            <div class="project-gallery">
+                {% for project in featured_project %}
+                    <article class="project-card">
+                        {% if project.image_url %}
+                            <div class="project-frame">
+                                <img src="{{ project.image_url }}" alt="{{ project.title }}">
+                            </div>
+                        {% endif %}
+                        <div class="project-detail">
+                            <h2 class="project-title">{{ project.title }}</h2>
+                            <dl class="project-meta">
+                                <div class="project-meta-row">
+                                    <dt>Kamera &amp; Lensa</dt>
+                                    <dd>{{ project.camera_gear }}</dd>
+                                </div>
+                                <div class="project-meta-row">
+                                    <dt>Pengaturan</dt>
+                                    <dd>{{ project.capture_settings }}</dd>
+                                </div>
+                                <div class="project-meta-row">
+                                    <dt>Proses Editing</dt>
+                                    <dd>{{ project.get_editing_software_display }}</dd>
+                                </div>
+                                {% if project.location_taken %}
+                                    <div class="project-meta-row">
+                                        <dt>Lokasi</dt>
+                                        <dd>{{ project.location_taken }}</dd>
+                                    </div>
+                                {% endif %}
+                                {% if project.taken_at %}
+                                    <div class="project-meta-row">
+                                        <dt>Diambil</dt>
+                                        <dd>{{ project.taken_at }}</dd>
+                                    </div>
+                                {% endif %}
+                            </dl>
+                            <p class="project-story">{{ project.story }}</p>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="empty-state">Belum ada cerita foto yang ditambahkan. Nantikan update berikutnya.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock content %}

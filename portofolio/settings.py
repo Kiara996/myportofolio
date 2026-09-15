@@ -27,8 +27,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-1@jirc5wzvw^g6yufu0$hsz94jaxdn=%a8strldmctu(ewdh16'
 
+PORTOFOLIO_SECRET = os.getenv('PORTOFOLIO_SECRET', 'default_secret_value')
+
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["localhost", "127.0.0.1", "kevin-fauzan-myportofolio.pws.cs.ui.ac.id"]
 

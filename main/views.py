@@ -1,6 +1,11 @@
-from django.shortcuts import render
+from django.contrib import messages
+from django.core import serializers
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
 
-from main.models import Experience, Photograph
+from main.forms import ProjectForm
+from main.models import Experience, Project
+from portofolio import settings
 
 
 def show_main(request):
@@ -23,9 +28,28 @@ def show_experience(request):
     return render(request, "experience.html", context)
 
 
-def show_photography(request):
+def show_project(request):
     context = {
         "name": "Kevin Fauzan Arjuna",
-        "featured_photographs": Photograph.objects.all(),
+        "featured_project": Project.objects.all(),
     }
-    return render(request, "photography.html", context)
+    return render(request, "project.html", context)
+
+def create_project(request):
+    form = ProjectForm(request.POST or None)
+
+    if request.method == "POST" and form.is_valid():
+        input_secret = form.cleaned_data.get("secret_code")
+        
+        if input_secret == settings.PORTOFOLIO_SECRET:
+            form.save()
+            messages.success(request, "Proyek baru berhasil ditambahkan!")
+            return redirect("main:show_project")
+        else:
+            messages.error(request, "Kode koentji salah!")
+
+    context = {
+        "name": "Kevin Fauzan Arjuna",
+        "form": form,
+    }
+    return render(request, "projects_form.html", context)
