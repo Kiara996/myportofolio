@@ -41,12 +41,13 @@ def create_project(request):
     if request.method == "POST" and form.is_valid():
         input_secret = form.cleaned_data.get("secret_code")
         
-        if input_secret == settings.PORTOFOLIO_SECRET:
+        if input_secret == settings.PORTFOLIO_SECRET:
             form.save()
             messages.success(request, "Proyek baru berhasil ditambahkan!")
             return redirect("main:show_project")
         else:
             messages.error(request, "Kode koentji salah!")
+            form.add_error("secret_code", "Koentji tidak sesuai.")
 
     context = {
         "name": "Kevin Fauzan Arjuna",
