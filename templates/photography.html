@@ -1,86 +1,59 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Photography - {{ name }}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-    <header class="site-header">
+{% extends 'base.html' %}
+
+{% block title %}Photography - {{ name }}{% endblock title %}
+
+{% block content %}
+<main>
+    <section class="photography-section" id="photography">
         <div class="container">
-            <a href="{% url 'main:show_main' %}" class="brand">{{ name }}</a>
-            <nav>
-                <a href="{% url 'main:show_main' %}">Profile</a>
-                <a href="{% url 'main:show_experience' %}">Experience</a>
-                <a href="{% url 'main:show_photography' %}">Photography</a>
-                <a href="{% url 'main:show_main' %}#skills">Skills</a>
-                <a href="{% url 'main:show_main' %}#portfolio">Portfolio</a>
-            </nav>
-        </div>
-    </header>
+            <p class="section-kicker">Cerita di balik lensa</p>
+            <h1>Photography</h1>
+            <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
 
-    <main>
-        <section class="photography-section" id="photography">
-            <div class="container">
-                <p class="section-kicker">Cerita di balik lensa</p>
-                <h1>Photography</h1>
-                <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
-
-                <div class="photograph-gallery">
-                    {% for photograph in featured_photographs %}
-                        <article class="photograph-card">
-                            {% if photograph.image_url %}
-                                <div class="photograph-frame">
-                                    <img src="{{ photograph.image_url }}" alt="{{ photograph.title }}">
-                                </div>
-                            {% endif %}
-                            <div class="photograph-detail">
-                                <h2 class="photograph-title">{{ photograph.title }}</h2>
-                                <dl class="photograph-meta">
-                                    <div class="photograph-meta-row">
-                                        <dt>Kamera &amp; Lensa</dt>
-                                        <dd>{{ photograph.camera_gear }}</dd>
-                                    </div>
-                                    <div class="photograph-meta-row">
-                                        <dt>Pengaturan</dt>
-                                        <dd>{{ photograph.capture_settings }}</dd>
-                                    </div>
-                                    <div class="photograph-meta-row">
-                                        <dt>Proses Editing</dt>
-                                        <dd>{{ photograph.get_editing_software_display }}</dd>
-                                    </div>
-                                    {% if photograph.location_taken %}
-                                        <div class="photograph-meta-row">
-                                            <dt>Lokasi</dt>
-                                            <dd>{{ photograph.location_taken }}</dd>
-                                        </div>
-                                    {% endif %}
-                                    {% if photograph.taken_at %}
-                                        <div class="photograph-meta-row">
-                                            <dt>Diambil</dt>
-                                            <dd>{{ photograph.taken_at }}</dd>
-                                        </div>
-                                    {% endif %}
-                                </dl>
-                                <p class="photograph-story">{{ photograph.story }}</p>
+            <div class="photograph-gallery">
+                {% for photograph in featured_photographs %}
+                    <article class="photograph-card">
+                        {% if photograph.image_url %}
+                            <div class="photograph-frame">
+                                <img src="{{ photograph.image_url }}" alt="{{ photograph.title }}">
                             </div>
-                        </article>
-                    {% empty %}
-                        <p class="empty-state">Belum ada cerita foto yang ditambahkan. Nantikan update berikutnya.</p>
-                    {% endfor %}
-                </div>
+                        {% endif %}
+                        <div class="photograph-detail">
+                            <h2 class="photograph-title">{{ photograph.title }}</h2>
+                            <dl class="photograph-meta">
+                                <div class="photograph-meta-row">
+                                    <dt>Kamera &amp; Lensa</dt>
+                                    <dd>{{ photograph.camera_gear }}</dd>
+                                </div>
+                                <div class="photograph-meta-row">
+                                    <dt>Pengaturan</dt>
+                                    <dd>{{ photograph.capture_settings }}</dd>
+                                </div>
+                                <div class="photograph-meta-row">
+                                    <dt>Proses Editing</dt>
+                                    <dd>{{ photograph.get_editing_software_display }}</dd>
+                                </div>
+                                {% if photograph.location_taken %}
+                                    <div class="photograph-meta-row">
+                                        <dt>Lokasi</dt>
+                                        <dd>{{ photograph.location_taken }}</dd>
+                                    </div>
+                                {% endif %}
+                                {% if photograph.taken_at %}
+                                    <div class="photograph-meta-row">
+                                        <dt>Diambil</dt>
+                                        <dd>{{ photograph.taken_at }}</dd>
+                                    </div>
+                                {% endif %}
+                            </dl>
+                            <p class="photograph-story">{{ photograph.story }}</p>
+                        </div>
+                    </article>
+                {% empty %}
+                    <p class="empty-state">Belum ada cerita foto yang ditambahkan. Nantikan update berikutnya.</p>
+                {% endfor %}
             </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2026 {{ name }}. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
-    </footer>
-</body>
-</html>
+    </section>
+</main>
+{% endblock content %}
