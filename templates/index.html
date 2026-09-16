@@ -1,61 +1,101 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Kevin - Portfolio</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/style.css">
-</head>
-<body>
-    <header class="site-header">
-        <div class="container">
-            <a href="#profile" class="brand">Kevin</a>
-            <nav>
-                <a href="#profile">Profile</a>
-            </nav>
-        </div>
-    </header>
+{% extends 'base.html' %}
 
-    <main>
-        <section class="hero" id="profile">
-            <div class="container hero-grid">
-                <div class="hero-identity">
-                    <p class="hero-kicker">Information System &middot; Universitas Indonesia</p>
-                    <h1>Kevin Fauzan Arjuna</h1>
+{% block title %}Home - {{ name }}{% endblock title %}
+
+{% block content %}
+<main>
+    <!-- Section Profile -->
+    <section class="hero" id="profile">
+        <!-- Icon: "camera" from Pixelarticons by @halfmage (MIT license) - https://pixelarticons.com -->
+        <svg class="hero-camera-bg" viewBox="0 0 400 260" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+            <g class="camera-rig">
+                <g transform="translate(80,10) scale(10)">
+                    <path fill="currentColor" d="M4 5h4v2H4zm4-2h8v2H8zm8 2h4v2h-4zM2 7h2v12H2zm2 12h16v2H4zM20 7h2v12h-2zM10 8h4v2h-4zm0 6h4v2h-4zm-2-4h2v4H8zm6 0h2v4h-2z"/>
+                </g>
+            </g>
+        </svg>
+
+        <div class="container hero-grid">
+            <div class="hero-identity">
+                <p class="hero-kicker">Information System &middot; Universitas Indonesia</p>
+                <h1>{{ name }}</h1>
+            </div>
+            <div class="hero-photo">
+                <div class="photo-block"></div>
+                <img class="avatar" src="/static/img/kevin.jpg" alt="Photo of {{ name }}">
+            </div>
+            <div class="hero-details">
+                <p class="bio">{{ bio }}</p>
+                <dl class="meta-list">
+                    <div class="meta-row">
+                        <dt>NPM</dt>
+                        <dd>{{ npm }}</dd>
+                    </div>
+                    <div class="meta-row">
+                        <dt>Program</dt>
+                        <dd>{{ study_program }}</dd>
+                    </div>
+                </dl>
+                <div class="social-links">
+                    <a href="https://github.com/kiara996" class="social-link">GitHub</a>
+                    <a href="https://linkedin.com/in/kevin-fauzan-arjuna" class="social-link">LinkedIn</a>
+                    <a href="mailto:kevinfauzanarjuna09@gmail.com" class="social-link">Email</a>
                 </div>
-                <div class="hero-photo">
-                    <div class="photo-block"></div>
-                    <img class="avatar" src="/static/img/kevin.jpg" alt="Photo of Kevin">
+            </div>
+        </div>
+    </section>
+
+    <!-- Section Skills Multimedia & Programming -->
+    <section class="skills" id="skills">
+        <div class="container">
+            <h2 class="section-title">Skills</h2>
+            <div class="skills-grid">
+                <div class="skill-card">
+                    <h3>Multimedia</h3>
+                    <div class="skill-icons">
+                        <img src="/static/img/icons/multimedia/adobe-premiere-svgrepo-com.svg" alt="Adobe Premiere Pro" title="Adobe Premiere Pro">
+                        <img src="/static/img/icons/multimedia/adobe-photoshop-svgrepo-com.svg" alt="Adobe Photoshop" title="Adobe Photoshop">
+                        <img src="/static/img/icons/multimedia/adobe-illustrator-svgrepo-com.svg" alt="Adobe Illustrator" title="Adobe Illustrator">
+                        <img src="/static/img/icons/multimedia/adobe-after-effects-svgrepo-com.svg" alt="Adobe After Effects" title="Adobe After Effects">
+                    </div>
                 </div>
-                <div class="hero-details">
-                    <p class="bio">Information System student at Universitas Indonesia. Love to writing and sometimes drawing. Living in both side logic and creativity.</p>
-                    <dl class="meta-list">
-                        <div class="meta-row">
-                            <dt>NPM</dt>
-                            <dd>2506612266</dd>
-                        </div>
-                        <div class="meta-row">
-                            <dt>Program</dt>
-                            <dd>S1 Information System</dd>
-                        </div>
-                    </dl>
-                    <div class="social-links">
-                        <a href="https://github.com/kiara996" class="social-link">GitHub</a>
-                        <a href="https://linkedin.com/in/kevin-fauzan-arjuna" class="social-link">LinkedIn</a>
-                        <a href="mailto:kevinfauzanarjuna09@gmail.com" class="social-link">Email</a>
+                <div class="skill-card">
+                    <h3>Programming Language</h3>
+                    <div class="skill-icons">
+                        <img src="/static/img/icons/programming/python-svgrepo-com.svg" alt="Python" title="Python">
+                        <img src="/static/img/icons/programming/java-svgrepo-com.svg" alt="Java" title="Java">
+                        <img src="/static/img/icons/programming/javascript-svgrepo-com.svg" alt="JavaScript" title="JavaScript">
+                        <img src="/static/img/icons/programming/typescript-official-svgrepo-com.svg" alt="TypeScript" title="TypeScript">
                     </div>
                 </div>
             </div>
-        </section>
-    </main>
-
-    <footer class="site-footer">
-        <div class="container">
-            <p>&copy; 2026 Kevin. Fakultas Ilmu Komputer, Universitas Indonesia.</p>
         </div>
-    </footer>
-</body>
-</html>
+    </section>
+
+    <!-- Section Portfolio Project -->
+    <section class="portfolio" id="portfolio">
+        <div class="container">
+            <h2 class="section-title">Portfolio</h2>
+            <p class="section-desc">Some of my moments captured</p>
+            <div class="portfolio-grid">
+                <figure class="portfolio-item">
+                    <img src="/static/img/portfolio/photo-1.jpeg" alt="Foto potret pedesaan">
+                    <figcaption>Village Life</figcaption>
+                </figure>
+                <figure class="portfolio-item">
+                    <img src="/static/img/portfolio/photo-2.jpeg" alt="Foto lorong">
+                    <figcaption>Lorong</figcaption>
+                </figure>
+                <figure class="portfolio-item">
+                    <img src="/static/img/portfolio/photo-3.jpeg" alt="Foto pemandangan perbukitan">
+                    <figcaption>Hilly Views</figcaption>
+                </figure>
+                <figure class="portfolio-item">
+                    <img src="/static/img/portfolio/photo-4.jpeg" alt="Foto jalan asrama UI">
+                    <figcaption>Street Morning</figcaption>
+                </figure>
+            </div>
+        </div>
+    </section>
+</main>
+{% endblock content %}
