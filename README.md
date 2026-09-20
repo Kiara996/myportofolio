@@ -52,6 +52,7 @@ Jawaban pertanyaan reflektif dan catatan pengerjaan setiap minggu (disimpan fold
 
 - [Tugas 1 - Static Web with HTML5 and CSS3](docs/tugas/tugas1.md)
 - [Tugas 2 - Implementasi MVT pada Django](docs/tugas/tugas2.md)
+- [Tugas 3 - Form & Data Delivery](docs/tugas/tugas3.md)
 
 ## Deployment
 
