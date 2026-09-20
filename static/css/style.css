@@ -578,6 +578,205 @@ main section[id] {
     font-weight: 700;
 }
 
+.experience-form {
+    width: 100%;
+    max-width: 100%;
+    margin-top: 1.5rem;
+}
+
+
+/* Experience header, search, delete */
+.experience-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.experience-add-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    white-space: nowrap;
+}
+
+.experience-add-button span {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.experience-search {
+    display: flex;
+    gap: 0.75rem;
+    margin: 1.5rem 0;
+}
+
+.experience-search__input {
+    width: 100%;
+    min-width: 0;
+    padding: 0.7rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+
+.experience-search__input:focus {
+    outline: 2px solid var(--accent);
+    border-color: var(--accent);
+}
+
+.experience-actions {
+    margin-top: 1rem;
+}
+
+.experience-delete-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 1rem;
+    border: 0;
+    background: transparent;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+}
+
+.experience-delete-modal:popover-open {
+    display: flex;
+}
+
+.experience-delete-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    padding: 0;
+    background: rgba(28, 25, 23, 0.58);
+    cursor: default;
+}
+
+.experience-delete-modal__content {
+    position: relative;
+    z-index: 1;
+    width: min(100%, 480px);
+    padding: 1.5rem;
+    background: var(--paper);
+    border: var(--border-w) solid var(--ink);
+    box-shadow: var(--shadow-off) var(--shadow-off) 0 0 var(--ink);
+}
+
+.experience-delete-modal__content h2 {
+    margin: 0 0 0.75rem;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+}
+
+.experience-delete-modal__close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.experience-delete-modal__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+@media (max-width: 600px) {
+    .experience-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .experience-add-button {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .experience-search {
+        flex-direction: column;
+    }
+
+    .experience-search .button {
+        width: 100%;
+    }
+
+    .experience-delete-modal {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .experience-delete-modal__content {
+        width: 100%;
+        padding: 1.25rem;
+    }
+
+    .experience-delete-modal__actions {
+        flex-direction: column-reverse;
+    }
+
+    .experience-delete-modal__actions .button {
+        width: 100%;
+        text-align: center;
+    }
+}
+
+/* Tablet ke atas */
+@media (min-width: 700px) {
+    .experience-card {
+        flex-direction: row;
+        align-items: flex-start;
+        padding: 1.5rem;
+    }
+
+    .experience-frame {
+        flex: 0 0 280px;
+        aspect-ratio: 1 / 1;
+    }
+
+    .experience-detail {
+        flex: 1;
+    }
+
+    .experience-meta-row {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 1rem;
+    }
+}
+
+/* Desktop */
+@media (min-width: 1000px) {
+    .experience-frame {
+        flex: 0 0 340px;
+    }
+
+    .experience-story {
+        max-width: 560px;
+    }
+}
+
+
+
 /* Project */
 .project-section {
     padding: 4.5rem 0 5rem;

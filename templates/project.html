@@ -11,6 +11,11 @@
                     <p class="section-kicker">Cerita di balik lensa</p>
                     <h1>Project</h1>
                     <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
+                    <a href="{% url 'main:create_project' %}" 
+                        class="button project-add-button">
+                        <span aria-hidden="true">+</span>
+                        Tambah Proyek
+                    </a>
                 </div>
             </div>
 
@@ -63,6 +68,14 @@
                                 {% endif %}
                             </dl>
                             <p class="project-story">{{ project.story }}</p>
+                            <div class="project-card-actions">
+                                <div class="project-actions">
+                                    {% if project.project_url %}
+                                        <a href="{{ project.project_url }}" class="button">Lihat Project</a>
+                                    {% endif %}
+                                    {% include "components/project_delete_modal.html" with project=project %}
+                                </div>
+                            </div>
                         </div>
                     </article>
                 {% empty %}

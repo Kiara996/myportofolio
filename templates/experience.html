@@ -8,6 +8,11 @@
         <div class="container">
             <p class="section-kicker">Perjalanan saya sejauh ini</p>
             <h1>Experience</h1>
+                <a href="{% url 'main:create_experience' %}" 
+                    class="button experience-add-button">
+                    <span aria-hidden="true">+</span>
+                    Tambah Pengalaman
+                </a>
 
             <div class="experience-grid">
                 {% for experience in experience_list %}
