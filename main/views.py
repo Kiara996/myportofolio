@@ -113,6 +113,31 @@ def create_project(request):
     context = {
         "name": "Kevin Fauzan Arjuna",
         "form": form,
+        "is_update": False,
+    }
+    return render(request, "projects_form.html", context)
+
+def update_project(request, project_id):
+    project = get_object_or_404(Project, pk=project_id)
+    
+    form = ProjectForm(request.POST or None, instance=project)
+    
+    if request.method == "POST" and form.is_valid():
+        input_secret = form.cleaned_data.get("secret_code")
+
+        if input_secret == settings.PORTFOLIO_SECRET:
+            form.save()
+            messages.success(request, "Proyek berhasil diperbarui!")
+            return redirect("main:show_project")
+        else:
+            messages.error(request, "Kode koentji salah!")
+            form.add_error("secret_code", "Koentji tidak sesuai.")
+
+    context = {
+        "name": "Kevin Fauzan Arjuna",
+        "form": form,
+        "project": project,
+        "is_update": True,
     }
     return render(request, "projects_form.html", context)
 
@@ -131,7 +156,32 @@ def create_experience(request):
             form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
             
     context = {
-        "name" : "Kevin Fauzan Arjuna",
-        "form" : form,
+        "name": "Kevin Fauzan Arjuna",
+        "form": form,
+        "is_update": False,
+    }
+    return render(request, "experience_form.html", context)
+
+
+def update_experience(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    form = ExperienceForm(request.POST or None, instance=experience)
+
+    if request.method == "POST" and form.is_valid():
+        input_secret = form.cleaned_data.get("secret_code")
+
+        if input_secret == settings.PORTFOLIO_SECRET:
+            form.save()
+            messages.success(request, "Experience berhasil diperbarui!")
+            return redirect("main:show_experience")
+        else:
+            messages.error(request, "Kodemu salah wak! Waduh")
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
+
+    context = {
+        "name": "Kevin Fauzan Arjuna",
+        "form": form,
+        "experience": experience,
+        "is_update": True,
     }
     return render(request, "experience_form.html", context)

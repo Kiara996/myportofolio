@@ -6,13 +6,29 @@
 <main>
     <section class="experience-section" id="experience">
         <div class="container">
-            <p class="section-kicker">Perjalanan saya sejauh ini</p>
-            <h1>Experience</h1>
-                <a href="{% url 'main:create_experience' %}" 
+            <div class="experience-header">
+                <div>
+                    <p class="section-kicker">Perjalanan saya sejauh ini</p>
+                    <h1>Experience</h1>
+                </div>
+                <a href="{% url 'main:create_experience' %}"
                     class="button experience-add-button">
                     <span aria-hidden="true">+</span>
                     Tambah Pengalaman
                 </a>
+            </div>
+
+            <form method="get"
+                action="{% url 'main:show_experience' %}"
+                class="experience-search">
+                <input type="search"
+                    name="title"
+                    value="{{ title_query }}"
+                    placeholder="Cari berdasarkan nama pengalaman"
+                    class="experience-search__input"
+                    aria-label="Cari berdasarkan nama pengalaman">
+                <button type="submit" class="button">Cari</button>
+            </form>
 
             <div class="experience-grid">
                 {% for experience in experience_list %}
@@ -30,11 +46,20 @@
                         {% else %}
                             <p class="experience-status">Selesai</p>
                         {% endif %}
+
+                        <div class="experience-actions">
+                            <a href="{% url 'main:update_experience' experience.id %}" class="button button-secondary">Edit</a>
+                            {% include "components/experience_delete_modal.html" with experience=experience %}
+                        </div>
                     </article>
                 {% empty %}
-                    <p class="empty-state">
-                        Belum ada pengalaman yang ditambahkan.
-                    </p>
+                    {% if title_query %}
+                        <p class="empty-state">Tidak ada pengalaman dengan nama tersebut.</p>
+                    {% else %}
+                        <p class="empty-state">
+                            Belum ada pengalaman yang ditambahkan.
+                        </p>
+                    {% endif %}
                 {% endfor %}
             </div>
         </div>

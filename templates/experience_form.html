@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Add Experience - {{ name }}{% endblock title %}
+{% block title %}{% if is_update %}Edit Experience{% else %}Add Experience{% endif %} - {{ name }}{% endblock title %}
 
 {% block content %}
     <main>
         <section class="experience-section">
             <div class="container">
-                <h1>Add New Experiences</h1>
+                <h1>{% if is_update %}Edit Experience{% else %}Add New Experiences{% endif %}</h1>
                 <form method="post"
-                    action="{% url 'main:create_experience' %}"
+                    action="{% if is_update %}{% url 'main:update_experience' experience.id %}{% else %}{% url 'main:create_experience' %}{% endif %}"
                     class="experience-form">
                     {% csrf_token %}
                     {% for field in form %}
@@ -23,7 +23,7 @@
                             {% endfor %}
                         </div>
                     {% endfor %}
-                    <button type="submit" class="button">Tambah Experience</button>
+                    <button type="submit" class="button">{% if is_update %}Simpan Perubahan{% else %}Tambah Experience{% endif %}</button>
                     <a href="{% url 'main:show_experience' %}" class="button button-secondary">Batal</a>
                 </form>
             </div>

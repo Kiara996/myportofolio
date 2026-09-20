@@ -630,6 +630,9 @@ main section[id] {
 
 .experience-actions {
     margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .experience-delete-modal {
@@ -968,6 +971,9 @@ main section[id] {
 
 .project-actions {
     margin-top: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .project-delete-modal {
