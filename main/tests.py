@@ -61,7 +61,38 @@ class MainTest(TestCase):
         self.assertFalse(self.experience.is_ongoing)
         self.assertContains(response, "Selesai")
         self.assertNotContains(response, "Sedang berlangsung")
-        
+
+    def test_experience_search_filters_by_title(self):
+        Experience.objects.create(
+            title="Volunteer Mengajar Coding",
+            description="Mengajar dasar pemrograman untuk siswa SMA.",
+            category="volunteer",
+        )
+
+        response = self.client.get(reverse("main:show_experience"), {"title": "Asisten"})
+
+        self.assertContains(response, "Asisten Dosen PBP")
+        self.assertNotContains(response, "Volunteer Mengajar Coding")
+
+    def test_experience_search_returns_empty_state_when_no_match(self):
+        response = self.client.get(reverse("main:show_experience"), {"title": "Tidak Ada Judul Ini"})
+
+        self.assertNotContains(response, self.experience.title)
+        self.assertContains(response, "Tidak ada pengalaman dengan nama tersebut.")
+
+    def test_experience_page_shows_edit_and_delete_controls(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("main:update_experience", args=[self.experience.id])}"',
+        )
+        self.assertContains(
+            response,
+            f'action="{reverse("main:delete_experience", args=[self.experience.id])}"',
+        )
+
+
 class ProjectPageTest(TestCase):
     def setUp(self):
         self.project = Project.objects.create(
@@ -96,6 +127,14 @@ class ProjectPageTest(TestCase):
         response = self.client.get(reverse("main:show_project"), {"title": "Judul Yang Tidak Ada"})
         self.assertNotContains(response, self.project.title)
         self.assertContains(response, "Tidak ada proyek dengan nama tersebut.")
+
+    def test_project_page_shows_edit_control(self):
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertContains(
+            response,
+            f'href="{reverse("main:update_project", args=[self.project.id])}"',
+        )
 
 
 class ProjectJsonApiTest(TestCase):
@@ -143,6 +182,29 @@ class ProjectJsonApiTest(TestCase):
         data = json.loads(response.content)
 
         self.assertEqual(data, [])
+
+
+class ExperienceJsonApiTest(TestCase):
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Asisten Dosen PBP",
+            description="Membantu mahasiswa memahami pengembangan web.",
+            category="part-time",
+        )
+
+    def test_api_returns_json_content_type(self):
+        response = self.client.get(reverse("main:get_experience_json"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/json")
+
+    def test_api_returns_all_experiences(self):
+        response = self.client.get(reverse("main:get_experience_json"))
+        data = json.loads(response.content)
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["model"], "main.experience")
+        self.assertEqual(data[0]["fields"]["title"], self.experience.title)
 
 
 class CreateProjectTest(TestCase):
@@ -218,6 +280,68 @@ class CreateProjectTest(TestCase):
         self.assertRedirects(response, reverse("main:show_project"))
 
 
+class UpdateProjectTest(TestCase):
+    def setUp(self):
+        self.project = Project.objects.create(
+            title="Golden Hour di Rooftop Fasilkom",
+            story="Diambil saat sore terakhir sebelum UAS.",
+            camera_gear="Fujifilm X-T30 II, lensa 35mm f/1.4",
+            capture_settings="f/2.0, 1/500s, ISO 200",
+            editing_software="lightroom",
+            location_taken="Rooftop Gedung A Fasilkom UI",
+        )
+        self.payload = {
+            "title": "Golden Hour di Rooftop Fasilkom (Edited)",
+            "story": "Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
+            "camera_gear": "Fujifilm X-T30 II, lensa 35mm f/1.4",
+            "capture_settings": "f/2.0, 1/500s, ISO 200",
+            "editing_software": "photoshop",
+            "location_taken": "Rooftop Gedung A Fasilkom UI",
+        }
+
+    def test_update_project_page_is_accessible(self):
+        response = self.client.get(reverse("main:update_project", args=[self.project.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "projects_form.html")
+        self.assertContains(response, self.project.title)
+
+    def test_update_project_form_prefills_existing_data(self):
+        response = self.client.get(reverse("main:update_project", args=[self.project.id]))
+
+        self.assertContains(response, self.project.camera_gear)
+        self.assertContains(response, "Simpan Perubahan")
+
+    def test_update_project_succeeds_with_correct_secret_code(self):
+        payload = {**self.payload, "secret_code": settings.PORTFOLIO_SECRET}
+        response = self.client.post(
+            reverse("main:update_project", args=[self.project.id]), payload, follow=True
+        )
+
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.title, self.payload["title"])
+        self.assertEqual(self.project.editing_software, "photoshop")
+        self.assertRedirects(response, reverse("main:show_project"))
+
+        messages_list = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("berhasil diperbarui" in str(message) for message in messages_list))
+
+    def test_update_project_fails_with_wrong_secret_code(self):
+        payload = {**self.payload, "secret_code": "kode-salah"}
+        response = self.client.post(
+            reverse("main:update_project", args=[self.project.id]), payload
+        )
+
+        self.project.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(self.project.title, self.payload["title"])
+        self.assertContains(response, "Koentji tidak sesuai.")
+
+    def test_update_nonexistent_project_returns_404(self):
+        response = self.client.get(reverse("main:update_project", args=[uuid.uuid4()]))
+        self.assertEqual(response.status_code, 404)
+
+
 class DeleteProjectTest(TestCase):
     def setUp(self):
         self.project = Project.objects.create(
@@ -246,5 +370,113 @@ class DeleteProjectTest(TestCase):
 
     def test_delete_nonexistent_project_returns_404(self):
         response = self.client.post(reverse("main:delete_project", args=[uuid.uuid4()]))
+
+        self.assertEqual(response.status_code, 404)
+
+
+class CreateExperienceTest(TestCase):
+    def setUp(self):
+        self.valid_payload = {
+            "title": "Freelance Photographer di Bali",
+            "description": "Membantu dokumentasi acara pernikahan dan prewedding.",
+            "category": "freelance",
+        }
+
+    def test_create_experience_page_is_accessible(self):
+        response = self.client.get(reverse("main:create_experience"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "experience_form.html")
+
+    def test_create_experience_succeeds_with_correct_secret_code(self):
+        payload = {**self.valid_payload, "secret_code": settings.PORTFOLIO_SECRET}
+        response = self.client.post(reverse("main:create_experience"), payload, follow=True)
+
+        self.assertTrue(Experience.objects.filter(title=self.valid_payload["title"]).exists())
+        self.assertRedirects(response, reverse("main:show_experience"))
+
+    def test_create_experience_fails_with_wrong_secret_code(self):
+        payload = {**self.valid_payload, "secret_code": "kode-salah"}
+        response = self.client.post(reverse("main:create_experience"), payload)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(Experience.objects.filter(title=self.valid_payload["title"]).exists())
+        self.assertContains(response, "Koentji tidak sesuai coba lagi wir.")
+
+
+class UpdateExperienceTest(TestCase):
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Asisten Dosen PBP",
+            description="Membantu mahasiswa memahami pengembangan web.",
+            category="part-time",
+        )
+        self.payload = {
+            "title": "Asisten Dosen PBP (Edited)",
+            "description": "Membantu mahasiswa memahami pengembangan web dan Django.",
+            "category": "full-time",
+        }
+
+    def test_update_experience_page_is_accessible(self):
+        response = self.client.get(reverse("main:update_experience", args=[self.experience.id]))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "experience_form.html")
+        self.assertContains(response, self.experience.title)
+
+    def test_update_experience_succeeds_with_correct_secret_code(self):
+        payload = {**self.payload, "secret_code": settings.PORTFOLIO_SECRET}
+        response = self.client.post(
+            reverse("main:update_experience", args=[self.experience.id]), payload, follow=True
+        )
+
+        self.experience.refresh_from_db()
+        self.assertEqual(self.experience.title, self.payload["title"])
+        self.assertEqual(self.experience.category, "full-time")
+        self.assertRedirects(response, reverse("main:show_experience"))
+
+    def test_update_experience_fails_with_wrong_secret_code(self):
+        payload = {**self.payload, "secret_code": "kode-salah"}
+        response = self.client.post(
+            reverse("main:update_experience", args=[self.experience.id]), payload
+        )
+
+        self.experience.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertNotEqual(self.experience.title, self.payload["title"])
+        self.assertContains(response, "Koentji tidak sesuai coba lagi wir.")
+
+    def test_update_nonexistent_experience_returns_404(self):
+        response = self.client.get(reverse("main:update_experience", args=[uuid.uuid4()]))
+        self.assertEqual(response.status_code, 404)
+
+
+class DeleteExperienceTest(TestCase):
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Asisten Dosen PBP",
+            description="Membantu mahasiswa memahami pengembangan web.",
+            category="part-time",
+        )
+
+    def test_delete_experience_via_get_does_not_delete(self):
+        response = self.client.get(reverse("main:delete_experience", args=[self.experience.id]))
+
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_delete_experience_via_post_deletes_experience(self):
+        response = self.client.post(
+            reverse("main:delete_experience", args=[self.experience.id]), follow=True
+        )
+
+        self.assertFalse(Experience.objects.filter(pk=self.experience.id).exists())
+        self.assertRedirects(response, reverse("main:show_experience"))
+
+        messages_list = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("berhasil dihapus" in str(message) for message in messages_list))
+
+    def test_delete_nonexistent_experience_returns_404(self):
+        response = self.client.post(reverse("main:delete_experience", args=[uuid.uuid4()]))
 
         self.assertEqual(response.status_code, 404)
