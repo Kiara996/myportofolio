@@ -1,5 +1,6 @@
 import uuid
 from django.db import models
+from django.contrib.auth.models import User
 
 class Experience(models.Model):
     EXPERIENCE_CHOICES = [
@@ -43,6 +44,7 @@ class Project(models.Model):
     taken_at = models.DateField(blank=True, null=True)
     image_url = models.URLField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    starred_by = models.ManyToManyField(User, related_name="starred_projects", blank=True)
 
     class Meta:
         ordering = ['-taken_at', '-uploaded_at']
