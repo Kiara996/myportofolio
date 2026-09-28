@@ -1,6 +1,7 @@
 import json
 import uuid
 
+from django.contrib.auth.models import User
 from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
@@ -8,6 +9,28 @@ from django.utils import timezone
 
 from main.models import Experience, Project
 from portofolio import settings
+
+
+def login_as_superuser(client, username="owner"):
+    """Buat akun pemilik portofolio (superuser) lalu login-kan client."""
+    owner = User.objects.create_superuser(
+        username=username, email=f"{username}@jawa.com", password="jawa-pass-123"
+    )
+    client.force_login(owner)
+    return owner
+
+
+def make_project(**overrides):
+    data = {
+        "title": "Golden Hour di Rooftop Fasilkom",
+        "story": "Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
+        "camera_gear": "Fujifilm X-T30 II, lensa 35mm f/1.4",
+        "capture_settings": "f/2.0, 1/500s, ISO 200",
+        "editing_software": "lightroom",
+        "location_taken": "Rooftop Gedung A Fasilkom UI",
+    }
+    data.update(overrides)
+    return Project.objects.create(**data)
 
 
 class MainTest(TestCase):
@@ -95,14 +118,7 @@ class MainTest(TestCase):
 
 class ProjectPageTest(TestCase):
     def setUp(self):
-        self.project = Project.objects.create(
-            title="Golden Hour di Rooftop Fasilkom",
-            story="Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
-            camera_gear="Fujifilm X-T30 II, lensa 35mm f/1.4",
-            capture_settings="f/2.0, 1/500s, ISO 200",
-            editing_software="lightroom",
-            location_taken="Rooftop Gedung A Fasilkom UI",
-        )
+        self.project = make_project()
 
     def test_project_url_is_accessible(self):
         response = self.client.get(reverse("main:show_project"))
@@ -128,7 +144,8 @@ class ProjectPageTest(TestCase):
         self.assertNotContains(response, self.project.title)
         self.assertContains(response, "Tidak ada proyek dengan nama tersebut.")
 
-    def test_project_page_shows_edit_control(self):
+    def test_project_page_shows_edit_control_for_owner(self):
+        login_as_superuser(self.client)
         response = self.client.get(reverse("main:show_project"))
 
         self.assertContains(
@@ -139,14 +156,7 @@ class ProjectPageTest(TestCase):
 
 class ProjectJsonApiTest(TestCase):
     def setUp(self):
-        self.project = Project.objects.create(
-            title="Golden Hour di Rooftop Fasilkom",
-            story="Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
-            camera_gear="Fujifilm X-T30 II, lensa 35mm f/1.4",
-            capture_settings="f/2.0, 1/500s, ISO 200",
-            editing_software="lightroom",
-            location_taken="Rooftop Gedung A Fasilkom UI",
-        )
+        self.project = make_project()
 
     def test_api_returns_json_content_type(self):
         response = self.client.get(reverse("main:get_project_json"))
@@ -163,7 +173,7 @@ class ProjectJsonApiTest(TestCase):
         self.assertEqual(data[0]["fields"]["title"], self.project.title)
 
     def test_api_filters_by_title_query(self):
-        Project.objects.create(
+        make_project(
             title="Malam di Jalan Margonda",
             story="Long exposure lampu kendaraan.",
             camera_gear="Sony A7 III, 24mm f/1.8",
@@ -182,6 +192,16 @@ class ProjectJsonApiTest(TestCase):
         data = json.loads(response.content)
 
         self.assertEqual(data, [])
+
+    def test_api_starred_by_uses_usernames_not_database_ids(self):
+        sasha = User.objects.create_user(username="sasha", password="pass-sasha-123")
+        rian = User.objects.create_user(username="rian", password="pass-rian-123")
+        self.project.starred_by.add(sasha, rian)
+
+        response = self.client.get(reverse("main:get_project_json"))
+        starred_by = json.loads(response.content)[0]["fields"]["starred_by"]
+
+        self.assertCountEqual(starred_by, [["sasha"], ["rian"]])
 
 
 class ExperienceJsonApiTest(TestCase):
@@ -209,6 +229,7 @@ class ExperienceJsonApiTest(TestCase):
 
 class CreateProjectTest(TestCase):
     def setUp(self):
+        login_as_superuser(self.client)
         self.valid_payload = {
             "title": "Kabut Pagi di Puncak",
             "story": "Mendaki subuh demi melihat lautan awan sebelum matahari naik.",
@@ -282,14 +303,8 @@ class CreateProjectTest(TestCase):
 
 class UpdateProjectTest(TestCase):
     def setUp(self):
-        self.project = Project.objects.create(
-            title="Golden Hour di Rooftop Fasilkom",
-            story="Diambil saat sore terakhir sebelum UAS.",
-            camera_gear="Fujifilm X-T30 II, lensa 35mm f/1.4",
-            capture_settings="f/2.0, 1/500s, ISO 200",
-            editing_software="lightroom",
-            location_taken="Rooftop Gedung A Fasilkom UI",
-        )
+        login_as_superuser(self.client)
+        self.project = make_project(story="Diambil saat sore terakhir sebelum UAS.")
         self.payload = {
             "title": "Golden Hour di Rooftop Fasilkom (Edited)",
             "story": "Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
@@ -344,14 +359,8 @@ class UpdateProjectTest(TestCase):
 
 class DeleteProjectTest(TestCase):
     def setUp(self):
-        self.project = Project.objects.create(
-            title="Golden Hour di Rooftop Fasilkom",
-            story="Diambil saat sore terakhir sebelum UAS, mengejar cahaya yang cuma muncul sepuluh menit.",
-            camera_gear="Fujifilm X-T30 II, lensa 35mm f/1.4",
-            capture_settings="f/2.0, 1/500s, ISO 200",
-            editing_software="lightroom",
-            location_taken="Rooftop Gedung A Fasilkom UI",
-        )
+        login_as_superuser(self.client)
+        self.project = make_project()
 
     def test_delete_project_via_get_does_not_delete(self):
         response = self.client.get(reverse("main:delete_project", args=[self.project.id]))
@@ -480,3 +489,380 @@ class DeleteExperienceTest(TestCase):
         response = self.client.post(reverse("main:delete_experience", args=[uuid.uuid4()]))
 
         self.assertEqual(response.status_code, 404)
+        
+        
+STRONG_PASSWORD = "Sasha-Str0ng-Pass!"
+class RegisterTest(TestCase):
+    def test_register_page_is_accessible(self):
+        response = self.client.get(reverse("main:register"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "register.html")
+
+    def test_register_creates_account_and_redirects_to_login(self):
+        response = self.client.post(
+            reverse("main:register"),
+            {"username": "sasha", "password1": STRONG_PASSWORD, "password2": STRONG_PASSWORD},
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("main:login"))
+        self.assertTrue(User.objects.filter(username="sasha").exists())
+        self.assertContains(response, "Akun berhasil dibuat")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_register_stores_hashed_password(self):
+        self.client.post(
+            reverse("main:register"),
+            {"username": "sasha", "password1": STRONG_PASSWORD, "password2": STRONG_PASSWORD},
+        )
+        user = User.objects.get(username="sasha")
+
+        self.assertNotEqual(user.password, STRONG_PASSWORD)
+        self.assertTrue(user.check_password(STRONG_PASSWORD))
+        self.assertFalse(user.is_superuser)
+
+    def test_register_fails_when_passwords_do_not_match(self):
+        response = self.client.post(
+            reverse("main:register"),
+            {"username": "sasha", "password1": STRONG_PASSWORD, "password2": "beda-sekali-123"},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="sasha").exists())
+
+    def test_register_fails_when_username_already_taken(self):
+        User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        response = self.client.post(
+            reverse("main:register"),
+            {"username": "sasha", "password1": STRONG_PASSWORD, "password2": STRONG_PASSWORD},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(User.objects.filter(username="sasha").count(), 1)
+        self.assertContains(response, "already exists")
+
+
+class LoginLogoutTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+
+    def test_login_page_is_accessible(self):
+        response = self.client.get(reverse("main:login"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, "login.html")
+
+    def test_login_with_correct_credentials_redirects_and_sets_cookies(self):
+        response = self.client.post(
+            reverse("main:login"), {"username": "sasha", "password": STRONG_PASSWORD}
+        )
+
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
+        self.assertIn("sessionid", response.cookies)
+        self.assertIn("last_login", response.cookies)
+        self.assertRegex(response.cookies["last_login"].value, r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$")
+
+    def test_login_with_wrong_password_shows_error(self):
+        response = self.client.post(
+            reverse("main:login"), {"username": "sasha", "password": "password-salah"}
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Please enter a correct username and password")
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertNotIn("last_login", response.cookies)
+
+    def test_login_page_shows_registration_success_message(self):
+        response = self.client.post(
+            reverse("main:register"),
+            {"username": "baru", "password1": STRONG_PASSWORD, "password2": STRONG_PASSWORD},
+            follow=True,
+        )
+
+        self.assertContains(response, "Akun berhasil dibuat. Silakan login.")
+
+    def test_logout_ends_session_and_deletes_last_login_cookie(self):
+        self.client.post(reverse("main:login"), {"username": "sasha", "password": STRONG_PASSWORD})
+        response = self.client.get(reverse("main:logout"))
+
+        self.assertRedirects(response, reverse("main:show_main"))
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(response.cookies["last_login"].value, "")
+        self.assertEqual(response.cookies["last_login"]["max-age"], 0)
+
+    def test_account_still_exists_after_logout(self):
+        self.client.post(reverse("main:login"), {"username": "sasha", "password": STRONG_PASSWORD})
+        self.client.get(reverse("main:logout"))
+
+        self.assertTrue(User.objects.filter(username="sasha").exists())
+        self.assertTrue(self.client.login(username="sasha", password=STRONG_PASSWORD))
+
+
+class NavbarAuthStatusTest(TestCase):
+    def test_anonymous_visitor_sees_login_and_register(self):
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, f'href="{reverse("main:login")}"')
+        self.assertContains(response, f'href="{reverse("main:register")}"')
+        self.assertNotContains(response, f'href="{reverse("main:logout")}"')
+
+    def test_logged_in_user_sees_username_and_logout(self):
+        user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.client.force_login(user)
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertContains(response, '<span class="nav-user">sasha</span>', html=False)
+        self.assertContains(response, f'href="{reverse("main:logout")}"')
+        self.assertNotContains(response, f'href="{reverse("main:register")}"')
+
+    def test_navbar_username_is_not_the_portfolio_owner_name(self):
+        user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.client.force_login(user)
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "Kevin Fauzan Arjuna")
+        self.assertContains(response, '<span class="nav-user">sasha</span>', html=False)
+
+
+class LastLoginCookieDisplayTest(TestCase):
+    def test_default_text_when_cookie_is_missing(self):
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "Sesi Terakhir Login")
+        self.assertContains(response, "Belum ada sesi login / Cookie tidak ditemukan")
+
+    def test_cookie_value_is_displayed_on_profile(self):
+        self.client.cookies["last_login"] = "2026-09-28 10:15:30"
+        response = self.client.get(reverse("main:show_main"))
+
+        self.assertContains(response, "2026-09-28 10:15:30")
+        self.assertNotContains(response, "Belum ada sesi login")
+
+    def test_full_login_flow_shows_last_login_on_profile(self):
+        User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        response = self.client.post(
+            reverse("main:login"),
+            {"username": "sasha", "password": STRONG_PASSWORD},
+            follow=True,
+        )
+
+        self.assertNotContains(response, "Belum ada sesi login")
+
+    def test_default_text_returns_after_logout(self):
+        User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.client.post(reverse("main:login"), {"username": "sasha", "password": STRONG_PASSWORD})
+        response = self.client.get(reverse("main:logout"), follow=True)
+
+        self.assertContains(response, "Belum ada sesi login / Cookie tidak ditemukan")
+
+
+class ProjectAuthorizationTest(TestCase):
+    def setUp(self):
+        self.project = make_project()
+        self.regular = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.login_url = reverse("main:login")
+
+    def _redirect_to_login(self, target_url):
+        return f"{self.login_url}?next={target_url}"
+
+    def test_anonymous_is_redirected_to_login_on_create_page(self):
+        url = reverse("main:create_project")
+        response = self.client.get(url)
+
+        self.assertRedirects(response, self._redirect_to_login(url))
+
+    def test_anonymous_cannot_create_project(self):
+        response = self.client.post(reverse("main:create_project"), {
+            "title": "Tidak Boleh Masuk", "story": "x", "camera_gear": "x",
+            "capture_settings": "x", "editing_software": "lightroom",
+            "secret_code": settings.PORTFOLIO_SECRET,
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertFalse(Project.objects.filter(title="Tidak Boleh Masuk").exists())
+
+    def test_anonymous_cannot_delete_project(self):
+        url = reverse("main:delete_project", args=[self.project.id])
+        response = self.client.post(url)
+
+        self.assertRedirects(response, self._redirect_to_login(url))
+        self.assertTrue(Project.objects.filter(pk=self.project.id).exists())
+
+    def test_anonymous_is_redirected_on_update_page(self):
+        url = reverse("main:update_project", args=[self.project.id])
+
+        self.assertRedirects(self.client.get(url), self._redirect_to_login(url))
+
+    def test_regular_user_gets_403_on_create_page(self):
+        self.client.force_login(self.regular)
+        response = self.client.get(reverse("main:create_project"))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_regular_user_cannot_create_project(self):
+        self.client.force_login(self.regular)
+        response = self.client.post(reverse("main:create_project"), {
+            "title": "Tidak Boleh Masuk", "story": "x", "camera_gear": "x",
+            "capture_settings": "x", "editing_software": "lightroom",
+            "secret_code": settings.PORTFOLIO_SECRET,
+        })
+
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Project.objects.filter(title="Tidak Boleh Masuk").exists())
+
+    def test_regular_user_cannot_delete_project(self):
+        self.client.force_login(self.regular)
+        response = self.client.post(reverse("main:delete_project", args=[self.project.id]))
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Project.objects.filter(pk=self.project.id).exists())
+
+    def test_regular_user_gets_403_on_update_page(self):
+        self.client.force_login(self.regular)
+        response = self.client.get(reverse("main:update_project", args=[self.project.id]))
+
+        self.assertEqual(response.status_code, 403)
+
+    def test_owner_can_open_create_page(self):
+        login_as_superuser(self.client)
+
+        self.assertEqual(self.client.get(reverse("main:create_project")).status_code, 200)
+
+    def test_owner_can_delete_project(self):
+        login_as_superuser(self.client)
+        self.client.post(reverse("main:delete_project", args=[self.project.id]))
+
+        self.assertFalse(Project.objects.filter(pk=self.project.id).exists())
+
+    def test_controls_hidden_from_anonymous_visitor(self):
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertNotContains(response, reverse("main:create_project"))
+        self.assertNotContains(response, reverse("main:update_project", args=[self.project.id]))
+        self.assertNotContains(response, reverse("main:delete_project", args=[self.project.id]))
+
+    def test_controls_hidden_from_regular_user(self):
+        self.client.force_login(self.regular)
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertNotContains(response, reverse("main:create_project"))
+        self.assertNotContains(response, reverse("main:delete_project", args=[self.project.id]))
+
+    def test_controls_visible_to_owner(self):
+        login_as_superuser(self.client)
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertContains(response, reverse("main:create_project"))
+        self.assertContains(response, reverse("main:delete_project", args=[self.project.id]))
+
+    def test_project_page_stays_readable_without_login(self):
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.project.title)
+
+
+class StarProjectTest(TestCase):
+    def setUp(self):
+        self.project = make_project()
+        self.sasha = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.rian = User.objects.create_user(username="rian", password=STRONG_PASSWORD)
+        self.url = reverse("main:toggle_star", args=[self.project.id])
+
+    def test_registered_user_can_star_project(self):
+        self.client.force_login(self.sasha)
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, reverse("main:show_project"))
+        self.assertIn(self.sasha, self.project.starred_by.all())
+
+    def test_second_post_removes_star(self):
+        self.client.force_login(self.sasha)
+        self.client.post(self.url)
+        self.client.post(self.url)
+
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_stars_from_different_users_are_counted_separately(self):
+        self.client.force_login(self.sasha)
+        self.client.post(self.url)
+        self.client.force_login(self.rian)
+        self.client.post(self.url)
+
+        self.assertEqual(self.project.starred_by.count(), 2)
+        self.assertEqual(list(self.sasha.starred_projects.all()), [self.project])
+
+    def test_owner_can_also_star(self):
+        owner = login_as_superuser(self.client)
+        self.client.post(self.url)
+
+        self.assertIn(owner, self.project.starred_by.all())
+
+    def test_anonymous_is_redirected_to_login_and_no_star_saved(self):
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, f'{reverse("main:login")}?next={self.url}')
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_get_request_does_not_change_star(self):
+        self.client.force_login(self.sasha)
+        response = self.client.get(self.url)
+
+        self.assertRedirects(response, reverse("main:show_project"))
+        self.assertEqual(self.project.starred_by.count(), 0)
+
+    def test_star_nonexistent_project_returns_404(self):
+        self.client.force_login(self.sasha)
+        response = self.client.post(reverse("main:toggle_star", args=[uuid.uuid4()]))
+
+        self.assertEqual(response.status_code, 404)
+
+    def test_star_button_is_visible_to_anonymous_with_count(self):
+        self.project.starred_by.add(self.sasha, self.rian)
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertContains(response, f'action="{self.url}"')
+        self.assertContains(response, '<span class="star-count">2</span>', html=False)
+
+    def test_button_shows_unstar_for_user_who_already_starred(self):
+        self.project.starred_by.add(self.sasha)
+        self.client.force_login(self.sasha)
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertContains(response, "Unstar")
+        self.assertContains(response, "is-starred")
+
+    def test_button_shows_star_for_user_who_has_not_starred(self):
+        self.project.starred_by.add(self.rian)
+        self.client.force_login(self.sasha)
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertNotContains(response, "Unstar")
+        self.assertNotContains(response, "is-starred")
+
+    def test_star_button_title_lists_usernames(self):
+        self.project.starred_by.add(self.sasha)
+        response = self.client.get(reverse("main:show_project"))
+
+        self.assertContains(response, 'title="sasha"')
+
+
+class CsrfProtectionTest(TestCase):
+    def test_forms_reject_post_without_csrf_token(self):
+        from django.test import Client
+
+        strict_client = Client(enforce_csrf_checks=True)
+        user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        response = strict_client.post(
+            reverse("main:login"), {"username": "sasha", "password": STRONG_PASSWORD}
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.assertNotIn("_auth_user_id", strict_client.session)
+
+    def test_login_form_contains_csrf_token(self):
+        response = self.client.get(reverse("main:login"))
+
+        self.assertContains(response, "csrfmiddlewaretoken")

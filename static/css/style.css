@@ -856,6 +856,75 @@ main section[id] {
     line-height: 1.7;
 }
 
+/* Nama akun yang sedang login di navbar */
+.site-header nav .nav-user {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--brut-yellow);
+    border: 2px solid var(--ink);
+    padding: 0.42rem 0.65rem;
+}
+
+@media (min-width: 760px) {
+    .site-header nav .nav-user {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.9rem;
+    }
+}
+
+/* Tombol star */
+.star-form {
+    display: inline;
+}
+
+.button-star {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--ink);
+}
+
+.button-star.is-starred {
+    background: var(--accent);
+}
+
+.star-count {
+    padding: 0.05rem 0.4rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+    font-size: 0.8rem;
+}
+
+/* Halaman Register / Login */
+.form-message {
+    margin: 1rem 0;
+    padding: 0.7rem 1rem;
+    font-weight: 700;
+    background: var(--brut-yellow);
+    border: 2px solid var(--ink);
+}
+
+.form-help ul {
+    padding-left: 1.1rem;
+}
+
+.auth-switch {
+    margin-top: 1.5rem;
+}
+
+.auth-switch a {
+    color: var(--accent-dark);
+    font-weight: 700;
+}
+
+.meta-list {
+    flex-wrap: wrap;
+    gap: 1rem 2rem;
+}
+
 /* Project Form */
 .project-form {
     width: 100%;
