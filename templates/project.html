@@ -11,11 +11,13 @@
                     <p class="section-kicker">Cerita di balik lensa</p>
                     <h1>Project</h1>
                     <p class="section-desc">Kumpulan foto yang punya cerita, lengkap dengan proses pengambilan dan editingnya.</p>
-                    <a href="{% url 'main:create_project' %}" 
-                        class="button project-add-button">
-                        <span aria-hidden="true">+</span>
-                        Tambah Proyek
-                    </a>
+                    {% if user.is_superuser %}
+                        <a href="{% url 'main:create_project' %}" 
+                            class="button project-add-button">
+                            <span aria-hidden="true">+</span>
+                            Tambah Proyek
+                        </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -73,8 +75,13 @@
                                     {% if project.project_url %}
                                         <a href="{{ project.project_url }}" class="button">Lihat Project</a>
                                     {% endif %}
-                                    <a href="{% url 'main:update_project' project.id %}" class="button button-secondary">Edit</a>
-                                    {% include "components/project_delete_modal.html" with project=project %}
+                                    {% include "components/project_star.html" with project=project %}
+                                    {% if can_edit %}
+                                        <a href="{% url 'main:update_project' project.id %}" class="button button-secondary">Edit</a>
+                                    {% endif %}
+                                    {% if user.is_superuser %}
+                                        {% include "components/project_delete_modal.html" with project=project %}
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
