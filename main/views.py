@@ -14,6 +14,11 @@ from main.models import Experience, Project
 from portofolio import settings
 
 
+def can_edit(user):
+    """Boleh mengubah data pemilik (superuser) atau anggota grup Editor."""
+    return user.is_superuser or user.groups.filter(name="Editor").exists()
+
+
 def show_main(request):
     last_login = request.COOKIES.get('last_login') or 'Belum ada sesi login / Cookie tidak ditemukan'
     context = {
@@ -120,6 +125,7 @@ def show_project(request):
         "name": "Kevin Fauzan Arjuna",
         "featured_project": projects,
         "title_query": title_query,
+        "can_edit": can_edit(request.user),
     }
     return render(request, "project.html", context)
 
@@ -176,7 +182,7 @@ def create_project(request):
 
 @login_required(login_url="/login/")
 def update_project(request, project_id):
-    if not request.user.is_superuser:
+    if not can_edit(request.user):
         raise PermissionDenied
 
     project = get_object_or_404(Project, pk=project_id)
@@ -202,12 +208,12 @@ def update_project(request, project_id):
     }
     return render(request, "projects_form.html", context)
 
+
 @login_required(login_url="/login/")
 def toggle_star(request, project_id):
     project = get_object_or_404(Project, pk=project_id)
 
     if request.method == "POST":
-
         if request.user in project.starred_by.all():
             project.starred_by.remove(request.user)
         else:

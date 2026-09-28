@@ -1,7 +1,7 @@
 import json
 import uuid
 
-from django.contrib.auth.models import User
+from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
@@ -14,10 +14,20 @@ from portofolio import settings
 def login_as_superuser(client, username="owner"):
     """Buat akun pemilik portofolio (superuser) lalu login-kan client."""
     owner = User.objects.create_superuser(
-        username=username, email=f"{username}@jawa.com", password="jawa-pass-123"
+        username=username, email=f"{username}@example.com", password="owner-pass-123"
     )
     client.force_login(owner)
     return owner
+
+
+def make_editor(client=None, username="editor"):
+    """Buat akun editor (anggota grup Editor) login-kan client jika diberikan."""
+    editor = User.objects.create_user(username=username, password="editor-pass-123")
+    group, _ = Group.objects.get_or_create(name="Editor")
+    editor.groups.add(group)
+    if client is not None:
+        client.force_login(editor)
+    return editor
 
 
 def make_project(**overrides):
@@ -866,3 +876,104 @@ class CsrfProtectionTest(TestCase):
         response = self.client.get(reverse("main:login"))
 
         self.assertContains(response, "csrfmiddlewaretoken")
+
+
+class EditorRoleTest(TestCase):
+    """Peran Editor (grup Editor) boleh mengubah, tidak boleh membuat/menghapus."""
+
+    def setUp(self):
+        self.project = make_project()
+        self.update_url = reverse("main:update_project", args=[self.project.id])
+        self.create_url = reverse("main:create_project")
+        self.delete_url = reverse("main:delete_project", args=[self.project.id])
+
+    def test_editor_can_open_update_page(self):
+        make_editor(self.client)
+
+        self.assertEqual(self.client.get(self.update_url).status_code, 200)
+
+    def test_editor_can_update_project(self):
+        make_editor(self.client)
+        response = self.client.post(self.update_url, {
+            "title": "Diubah Editor",
+            "story": self.project.story,
+            "camera_gear": self.project.camera_gear,
+            "capture_settings": self.project.capture_settings,
+            "editing_software": "photoshop",
+            "secret_code": settings.PORTFOLIO_SECRET,
+        })
+
+        self.project.refresh_from_db()
+        self.assertRedirects(response, reverse("main:show_project"))
+        self.assertEqual(self.project.title, "Diubah Editor")
+
+    def test_editor_cannot_create_project(self):
+        make_editor(self.client)
+
+        self.assertEqual(self.client.get(self.create_url).status_code, 403)
+
+    def test_editor_cannot_delete_project(self):
+        make_editor(self.client)
+        response = self.client.post(self.delete_url)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertTrue(Project.objects.filter(pk=self.project.id).exists())
+
+    def test_regular_user_cannot_update_project(self):
+        user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.client.force_login(user)
+
+        self.assertEqual(self.client.get(self.update_url).status_code, 403)
+
+    def test_editor_can_also_star(self):
+        editor = make_editor(self.client)
+        self.client.post(reverse("main:toggle_star", args=[self.project.id]))
+
+        self.assertIn(editor, self.project.starred_by.all())
+
+    def test_editor_sees_edit_button_only(self):
+        make_editor(self.client)
+        html = self.client.get(reverse("main:show_project")).content.decode()
+
+        self.assertIn(self.update_url, html)
+        self.assertNotIn(self.create_url, html)
+        self.assertNotIn(self.delete_url, html)
+
+    def test_owner_sees_all_buttons(self):
+        login_as_superuser(self.client)
+        html = self.client.get(reverse("main:show_project")).content.decode()
+
+        self.assertIn(self.update_url, html)
+        self.assertIn(self.create_url, html)
+        self.assertIn(self.delete_url, html)
+
+    def test_regular_user_and_anonymous_see_no_edit_buttons(self):
+        User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        for logged_in in (False, True):
+            if logged_in:
+                self.client.login(username="sasha", password=STRONG_PASSWORD)
+            html = self.client.get(reverse("main:show_project")).content.decode()
+            with self.subTest(logged_in=logged_in):
+                self.assertNotIn(self.update_url, html)
+                self.assertNotIn(self.create_url, html)
+                self.assertNotIn(self.delete_url, html)
+
+    def test_editor_loses_access_when_removed_from_group(self):
+        editor = make_editor(self.client)
+        editor.groups.clear()
+
+        self.assertEqual(self.client.get(self.update_url).status_code, 403)
+
+
+class ApiSafetyTest(TestCase):
+    def test_api_does_not_leak_account_details(self):
+        user = User.objects.create_user(
+            username="sasha", email="sasha@example.com", password=STRONG_PASSWORD
+        )
+        project = make_project()
+        project.starred_by.add(user)
+        body = self.client.get(reverse("main:get_project_json")).content.decode()
+
+        self.assertIn('"starred_by": [["sasha"]]', body)
+        for secret in ("password", "sasha@example.com", "is_superuser", settings.PORTFOLIO_SECRET):
+            self.assertNotIn(secret, body)
