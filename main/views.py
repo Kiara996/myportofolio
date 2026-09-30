@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
 from django.core import serializers
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from main.forms import ProjectForm, ExperienceForm
@@ -91,15 +91,40 @@ def show_experience(request):
 
 def get_project_json(request):
     title_query = request.GET.get("title", "").strip()
-    projects = Project.objects.all()
+    projects = Project.objects.prefetch_related('starred_by').all()
 
     if title_query:
         projects = projects.filter(title__icontains=title_query)
-
-    projects_json = serializers.serialize(
-        "json", projects, use_natural_foreign_keys=True
-    )
-    return HttpResponse(projects_json, content_type="application/json")
+        
+    # Konstruksi data JSON secara manual agar bisa menyisipkan Logika Star
+    data = []
+    for project in projects:
+        starred_users = project.starred_by.all()
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        starred_by_names = ", ".join([u.username for u in starred_users])
+        
+        data.append({
+            "pk": str(project.id),
+            "fields": {
+                "title": project.title,
+                "story": project.story,
+                "camera_gear": project.camera_gear,
+                "capture_settings": project.capture_settings,
+                "editing_software": project.editing_software,
+                "location_taken": project.location_taken,
+                "taken_at": project.taken_at,
+                "image_url": project.image_url,
+                "uploaded_at": project.uploaded_at,
+                "is_starred": is_starred,
+                "starred_by_names": starred_by_names
+            }
+        })
+        
+    return JsonResponse(data, safe=False)
+    # projects_json = serializers.serialize(
+    #     "json", projects, use_natural_foreign_keys=True
+    # )
+    # return HttpResponse(projects_json, content_type="application/json")
 
 def get_experience_json(request):
     title_query = request.GET.get("title", "").strip()
@@ -113,19 +138,20 @@ def get_experience_json(request):
 
 
 def show_project(request):
-    json_response = get_project_json(request)
-    projects = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    projects = [project.object for project in projects]
+    # json_response = get_project_json(request)
+    # projects = serializers.deserialize(
+    #     "json",
+    #     json_response.content.decode("utf-8"),
+    # )
+    # projects = [project.object for project in projects]
     title_query = request.GET.get("title", "").strip()
 
     context = {
         "name": "Kevin Fauzan Arjuna",
-        "featured_project": projects,
+        # "featured_project": projects,
         "title_query": title_query,
         "can_edit": can_edit(request.user),
+        "form": ProjectForm(),
     }
     return render(request, "project.html", context)
 
@@ -144,7 +170,11 @@ def delete_project(request, project_id):
 
     return redirect("main:show_project")
 
+@login_required(login_url="/login/")
 def delete_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    
     experience = get_object_or_404(Experience, pk=experience_id)
 
     if request.method == "POST":
