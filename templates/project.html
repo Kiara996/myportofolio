@@ -53,7 +53,7 @@
             <!-- Project Grid -->
             <div id="grid" class="experience-grid project-grid hide"></div>
 
-            <div class="project-gallery">
+            <div class="project-gallery" id="ssr-gallery">
                 {% for project in featured_project %}
                     <article class="project-card">
                         {% if project.image_url %}
@@ -92,9 +92,6 @@
                             <p class="project-story">{{ project.story }}</p>
                             <div class="project-card-actions">
                                 <div class="project-actions">
-                                    {% if project.project_url %}
-                                        <a href="{{ project.project_url }}" class="button">Lihat Project</a>
-                                    {% endif %}
                                     {% include "components/project_star.html" with project=project %}
                                     {% if can_edit %}
                                         <a href="{% url 'main:update_project' project.id %}" class="button button-secondary">Edit</a>
@@ -137,9 +134,13 @@ const gridContainer = document.getElementById('grid');
 const searchForm = document.getElementById('project-search-form');
 const searchInput = document.getElementById('search-input');
 const projectForm = document.getElementById('project-form');
+const ssrGallery = document.getElementById('ssr-gallery');
 
 const SEARCH_DEBOUNCE_DELAY = 300;
 let searchDebounceTimer;
+
+// Kalau JS mati/gagal, markup SSR ini tetap berjalan normal.
+if (ssrGallery) ssrGallery.classList.add('hide');
 
 // 1. Helper Ambil Cookie CSRF
 function getCookie(name) {
@@ -220,7 +221,7 @@ function buildProjectCardElement(item) {
                 </div>
                 <div class="project-meta-row">
                     <dt>Proses Editing</dt>
-                    <dd>${escapeHtml(project.editing_software) || '-'}</dd>
+                    <dd>${escapeHtml(project.editing_software_display) || '-'}</dd>
                 </div>
                 ${project.location_taken ? `<div class="project-meta-row"><dt>Lokasi</dt><dd>${escapeHtml(project.location_taken)}</dd></div>` : ''}
                 ${project.taken_at ? `<div class="project-meta-row"><dt>Diambil</dt><dd>${escapeHtml(project.taken_at)}</dd></div>` : ''}

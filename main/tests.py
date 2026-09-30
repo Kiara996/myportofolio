@@ -30,6 +30,12 @@ def make_editor(client=None, username="editor"):
     return editor
 
 
+def ssr_html(response):
+    """HTML server-rendered saja, tanpa inline <script> yang mengandung
+    teks 'Unstar'/'is-starred' sebagai literal string builder kartu AJAX."""
+    return response.content.decode().split("<script>")[0]
+
+
 def make_project(**overrides):
     data = {
         "title": "Golden Hour di Rooftop Fasilkom",
@@ -114,6 +120,7 @@ class MainTest(TestCase):
         self.assertContains(response, "Tidak ada pengalaman dengan nama tersebut.")
 
     def test_experience_page_shows_edit_and_delete_controls(self):
+        login_as_superuser(self.client)
         response = self.client.get(reverse("main:show_experience"))
 
         self.assertContains(
@@ -179,7 +186,7 @@ class ProjectJsonApiTest(TestCase):
         data = json.loads(response.content)
 
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["model"], "main.project")
+        self.assertEqual(data[0]["pk"], str(self.project.id))
         self.assertEqual(data[0]["fields"]["title"], self.project.title)
 
     def test_api_filters_by_title_query(self):
@@ -209,9 +216,10 @@ class ProjectJsonApiTest(TestCase):
         self.project.starred_by.add(sasha, rian)
 
         response = self.client.get(reverse("main:get_project_json"))
-        starred_by = json.loads(response.content)[0]["fields"]["starred_by"]
+        fields = json.loads(response.content)[0]["fields"]
 
-        self.assertCountEqual(starred_by, [["sasha"], ["rian"]])
+        self.assertEqual(fields["star_count"], 2)
+        self.assertCountEqual(fields["starred_by_names"].split(", "), ["sasha", "rian"])
 
 
 class ExperienceJsonApiTest(TestCase):
@@ -395,6 +403,7 @@ class DeleteProjectTest(TestCase):
 
 class CreateExperienceTest(TestCase):
     def setUp(self):
+        login_as_superuser(self.client)
         self.valid_payload = {
             "title": "Freelance Photographer di Bali",
             "description": "Membantu dokumentasi acara pernikahan dan prewedding.",
@@ -425,6 +434,7 @@ class CreateExperienceTest(TestCase):
 
 class UpdateExperienceTest(TestCase):
     def setUp(self):
+        login_as_superuser(self.client)
         self.experience = Experience.objects.create(
             title="Asisten Dosen PBP",
             description="Membantu mahasiswa memahami pengembangan web.",
@@ -472,6 +482,7 @@ class UpdateExperienceTest(TestCase):
 
 class DeleteExperienceTest(TestCase):
     def setUp(self):
+        login_as_superuser(self.client)
         self.experience = Experience.objects.create(
             title="Asisten Dosen PBP",
             description="Membantu mahasiswa memahami pengembangan web.",
@@ -499,8 +510,71 @@ class DeleteExperienceTest(TestCase):
         response = self.client.post(reverse("main:delete_experience", args=[uuid.uuid4()]))
 
         self.assertEqual(response.status_code, 404)
-        
-        
+
+
+class ExperienceAuthorizationTest(TestCase):
+    """Experience CRUD memakai RBAC yang sama seperti Project
+    create/delete khusus owner (superuser), update boleh owner atau Editor."""
+
+    def setUp(self):
+        self.experience = Experience.objects.create(
+            title="Asisten Dosen PBP",
+            description="Membantu mahasiswa memahami pengembangan web.",
+            category="part-time",
+        )
+        self.regular = User.objects.create_user(username="sasha", password="Sasha-Str0ng-Pass!")
+        self.create_url = reverse("main:create_experience")
+        self.update_url = reverse("main:update_experience", args=[self.experience.id])
+        self.delete_url = reverse("main:delete_experience", args=[self.experience.id])
+        self.login_url = reverse("main:login")
+
+    def _redirect_to_login(self, target_url):
+        return f"{self.login_url}?next={target_url}"
+
+    def test_anonymous_is_redirected_on_all_experience_actions(self):
+        self.assertRedirects(self.client.get(self.create_url), self._redirect_to_login(self.create_url))
+        self.assertRedirects(self.client.get(self.update_url), self._redirect_to_login(self.update_url))
+        self.assertRedirects(self.client.post(self.delete_url), self._redirect_to_login(self.delete_url))
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_regular_user_gets_403_on_all_experience_actions(self):
+        self.client.force_login(self.regular)
+
+        self.assertEqual(self.client.get(self.create_url).status_code, 403)
+        self.assertEqual(self.client.get(self.update_url).status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url).status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_editor_can_update_but_not_create_or_delete(self):
+        make_editor(self.client)
+
+        self.assertEqual(self.client.get(self.update_url).status_code, 200)
+        self.assertEqual(self.client.get(self.create_url).status_code, 403)
+        self.assertEqual(self.client.post(self.delete_url).status_code, 403)
+        self.assertTrue(Experience.objects.filter(pk=self.experience.id).exists())
+
+    def test_owner_can_access_all_experience_actions(self):
+        login_as_superuser(self.client)
+
+        self.assertEqual(self.client.get(self.create_url).status_code, 200)
+        self.assertEqual(self.client.get(self.update_url).status_code, 200)
+
+    def test_edit_and_delete_controls_only_visible_to_can_edit_users(self):
+        response = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(response, self.update_url)
+        self.assertNotContains(response, self.delete_url)
+
+        self.client.force_login(self.regular)
+        response = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(response, self.update_url)
+        self.assertNotContains(response, self.delete_url)
+
+        login_as_superuser(self.client)
+        response = self.client.get(reverse("main:show_experience"))
+        self.assertContains(response, self.update_url)
+        self.assertContains(response, self.delete_url)
+
+
 STRONG_PASSWORD = "Sasha-Str0ng-Pass!"
 class RegisterTest(TestCase):
     def test_register_page_is_accessible(self):
@@ -840,17 +914,19 @@ class StarProjectTest(TestCase):
         self.project.starred_by.add(self.sasha)
         self.client.force_login(self.sasha)
         response = self.client.get(reverse("main:show_project"))
+        html = ssr_html(response)
 
-        self.assertContains(response, "Unstar")
-        self.assertContains(response, "is-starred")
+        self.assertIn("Unstar", html)
+        self.assertIn("is-starred", html)
 
     def test_button_shows_star_for_user_who_has_not_starred(self):
         self.project.starred_by.add(self.rian)
         self.client.force_login(self.sasha)
         response = self.client.get(reverse("main:show_project"))
+        html = ssr_html(response)
 
-        self.assertNotContains(response, "Unstar")
-        self.assertNotContains(response, "is-starred")
+        self.assertNotIn("Unstar", html)
+        self.assertNotIn("is-starred", html)
 
     def test_star_button_title_lists_usernames(self):
         self.project.starred_by.add(self.sasha)
@@ -974,6 +1050,6 @@ class ApiSafetyTest(TestCase):
         project.starred_by.add(user)
         body = self.client.get(reverse("main:get_project_json")).content.decode()
 
-        self.assertIn('"starred_by": [["sasha"]]', body)
+        self.assertIn('"starred_by_names": "sasha"', body)
         for secret in ("password", "sasha@example.com", "is_superuser", settings.PORTFOLIO_SECRET):
             self.assertNotIn(secret, body)

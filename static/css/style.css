@@ -571,6 +571,10 @@ main section[id] {
     color: var(--text-muted);
 }
 
+.hide {
+    display: none !important;
+}
+
 .experience-status {
     margin-top: 1rem;
     font-family: var(--font-mono);

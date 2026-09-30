@@ -1,8 +1,5 @@
 from django.core.exceptions import ValidationError
 from django.forms import DateInput, ModelForm, TextInput, Textarea, URLInput, Select, PasswordInput, CharField
-from main.models import Experience, Project
-from django.core.exceptions import ValidationError
-from django.forms import DateInput, ModelForm, TextInput, Textarea, URLInput, Select, PasswordInput, CharField
 from django.utils.html import strip_tags
 
 from main.models import Experience, Project
@@ -54,7 +51,6 @@ class ProjectForm(ModelForm):
             "taken_at",
             "image_url",
         ]
-        # ... labels, help_texts, dan widgets tetap seperti sebelumnya ...
 
         labels = {
             "title": "Nama Proyek",
@@ -127,7 +123,17 @@ class ExperienceForm(ModelForm):
         label="Koentji",
         required=True
     )
-    
+
+    # Cleaning input dari tag HTML untuk mencegah XSS
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data.get("title", "")).strip()
+        if not title:
+            raise ValidationError("Nama pengalaman tidak boleh hanya berisi tag HTML.")
+        return title
+
+    def clean_description(self):
+        return strip_tags(self.cleaned_data.get("description", "")).strip()
+
     class Meta:
         model = Experience
         fields = [
