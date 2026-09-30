@@ -25,7 +25,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-1@jirc5wzvw^g6yufu0$hsz94jaxdn=%a8strldmctu(ewdh16'
+# Nilai fallback ini HANYA untuk kenyamanan dev lokal (kalau .env belum diisi);
+# key asli untuk dev/produksi harus datang dari .env / .env.prod, bukan hardcoded di sini.
+SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-1@jirc5wzvw^g6yufu0$hsz94jaxdn=%a8strldmctu(ewdh16')
 
 PORTFOLIO_SECRET = os.getenv('PORTFOLIO_SECRET', 'default_secret_value')
 
