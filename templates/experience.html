@@ -11,11 +11,13 @@
                     <p class="section-kicker">Perjalanan saya sejauh ini</p>
                     <h1>Experience</h1>
                 </div>
+                {% if user.is_superuser %}
                 <a href="{% url 'main:create_experience' %}"
                     class="button experience-add-button">
                     <span aria-hidden="true">+</span>
                     Tambah Pengalaman
                 </a>
+                {% endif %}
             </div>
 
             <form method="get"
@@ -48,8 +50,10 @@
                         {% endif %}
 
                         <div class="experience-actions">
+                            {% if can_edit %}
                             <a href="{% url 'main:update_experience' experience.id %}" class="button button-secondary">Edit</a>
                             {% include "components/experience_delete_modal.html" with experience=experience %}
+                            {% endif %}
                         </div>
                     </article>
                 {% empty %}
