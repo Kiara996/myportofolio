@@ -1,5 +1,9 @@
 from django.core.exceptions import ValidationError
 from django.forms import DateInput, ModelForm, TextInput, Textarea, URLInput, Select, PasswordInput, CharField
+from main.models import Experience, Project
+from django.core.exceptions import ValidationError
+from django.forms import DateInput, ModelForm, TextInput, Textarea, URLInput, Select, PasswordInput, CharField
+from django.utils.html import strip_tags
 
 from main.models import Experience, Project
 
@@ -12,16 +16,31 @@ class ProjectForm(ModelForm):
 
     def clean_image_url(self):
         image_url = self.cleaned_data.get("image_url") or ""
-
         if "drive.google.com" in image_url and "thumbnail?id=" not in image_url:
             raise ValidationError(
-                """Link Google Drive harus dalam format thumbnail, contoh: 
-                https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000. 
-                Link folder atau link 'file/d/.../view' tidak bisa ditampilkan 
-                sebagai gambar."""
+                "Link Google Drive harus dalam format thumbnail, contoh: "
+                "https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000."
             )
-
         return image_url
+
+    # Cleaning input dari tag HTML untuk mencegah XSS
+    def clean_title(self):
+        title = strip_tags(self.cleaned_data.get("title", "")).strip()
+        if not title:
+            raise ValidationError("Nama proyek tidak boleh hanya berisi tag HTML.")
+        return title
+
+    def clean_story(self):
+        return strip_tags(self.cleaned_data.get("story", "")).strip()
+
+    def clean_camera_gear(self):
+        return strip_tags(self.cleaned_data.get("camera_gear", "")).strip()
+
+    def clean_capture_settings(self):
+        return strip_tags(self.cleaned_data.get("capture_settings", "")).strip()
+
+    def clean_location_taken(self):
+        return strip_tags(self.cleaned_data.get("location_taken", "")).strip()
 
     class Meta:
         model = Project
@@ -35,6 +54,7 @@ class ProjectForm(ModelForm):
             "taken_at",
             "image_url",
         ]
+        # ... labels, help_texts, dan widgets tetap seperti sebelumnya ...
 
         labels = {
             "title": "Nama Proyek",
