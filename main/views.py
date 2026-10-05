@@ -72,24 +72,200 @@ def logout_user(request):
     response.delete_cookie('last_login')
     return response
 
+# --------------------------------
+#       EXPERIENCE FUNCTION
+#---------------------------------
 
 def show_experience(request):
-    json_response = get_experience_json(request)
-    experiences = serializers.deserialize(
-        "json",
-        json_response.content.decode("utf-8"),
-    )
-    experiences = [experience.object for experience in experiences]
-    title_query = request.GET.get("title", "").strip()
+    """Render halaman experience, isi diambil lewat AJAX dari get_experience_json"""
+    # json_response = get_experience_json(request)
+    # experiences = serializers.deserialize(
+    #     "json",
+    #     json_response.content.decode("utf-8"),
+    # )
+    # experiences = [experience.object for experience in experiences]
+    # title_query = request.GET.get("title", "").strip()
     
+    # context = {
+    #     "name": "Kevin Fauzan Arjuna",
+    #     "experience_list": experiences,
+    #     "title_query": title_query,
+    #     "can_edit": can_edit(request.user),
+    # }
+    # return render(request, "experience.html", context)
+    
+    title_query = request.GET.get("title", "").strip()
+    experiences = Experience.objects.prefetch_related("starred_by")
+    
+    if title_query:
+        experiences = experiences.filter(title__contain=title_query)
+        
     context = {
         "name": "Kevin Fauzan Arjuna",
         "experience_list": experiences,
         "title_query": title_query,
         "can_edit": can_edit(request.user),
+        "form": ExperienceForm(),
     }
     return render(request, "experience.html", context)
 
+def get_experience_json(request):
+    """Endpoint json experience,  filter lewat path filter ?title="""
+    title_query = request.GET.get("title", "").strip()
+    experiences = Experience.objects.prefetch_related("starred_by")
+    
+    if title_query:
+        experiences = experiences.filter(title__icontains=title_query)
+        
+    data = []
+    for experience in experiences:
+        starred_users = list(experience.starred_by.all())
+        is_starred = request.user in starred_users if request.user.is_authenticated else False
+        
+        data.append({
+            "pk": str(experience.id),
+            "fields": {
+                "title": experience.title,
+                "description": experience.description,
+                "category": experience.category,
+                "category_display": experience.get_category_display(),
+                "thumbnail": experience.thumbnail,
+                "started_at": experience.started_at,
+                "ended_at": experience.ended_at,
+                "is_ongoing": experience.is_ongoing,
+                "status_display": experience.status_display,
+                "is_starred": is_starred,
+                "star_count": len(starred_users),
+                "starred_by_names": ", ".join(u.username for u in starred_users),
+            }
+        })
+        
+    return JsonResponse(data, safe=False)
+
+@require_POST
+def create_experience_ajax(request):
+    """Add experience lewat AJAX, feedback JSON"""
+    if not request.user.is_superuser:
+        return JsonResponse(
+            {"message": "Hanya pemilik portofolio yang dapat menambahkan pengalaman."},
+            status = 403,
+        )
+        
+    form = ExperienceForm(request.POST)
+    
+    if form.is_valid():
+        if form.cleaned_data.get("secret_code") == settings.PORTFOLIO_SECRET:
+            experience = form.save()
+            return JsonResponse(
+                {"message": "Pengalaman berhasil ditambahkan.", "pk": str(experience.id)},
+                status=201,
+            )
+        form.add_error("secret_code", "Koentji tidak sesuai.")
+        
+    return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
+@login_required(login_url="/login/")
+def toggle_experience_star(request, experience_id):
+    experience = get_object_or_404(Experience, pk=experience_id)
+    
+    if request.method == "POST":
+        if request.user in experience.starred_by.all():
+            experience.starred_by.remove(request.user)
+        else:
+            experience.starred_by.add(request.user)
+            
+    return redirect("main:show_experience")
+
+@login_required(login_url="/login/")
+def delete_experience(request, experience_id):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    
+    experience = get_object_or_404(Experience, pk=experience_id)
+    
+    if request.method == "POST":
+        experience.delete()
+        messages.success(request, "Experience berhasil dihapus!")
+        return redirect("main:show_experience")
+    
+    return redirect("main:show_experience")
+
+@login_required(login_url="/login/")
+def create_experience(request):
+    if not request.user.is_superuser:
+        raise PermissionDenied
+    
+    form = ExperienceForm(request.POST or None)
+    
+    if request.method == "POST" and form.is_valid():
+        input_secret = form.cleaned_data.get("secret_code")
+        
+        if input_secret == settings.PORTFOLIO_SECRET:
+            form.save()
+            messages.success(request, "Experience baru berhasil ditambahkan!")
+            return redirect("main:show_experience")
+        else:
+            messages.error(request, "kodemu salah wak! waduh")
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wak.")
+            
+    context = {
+        "name": "Kevin Fauzan Arjuna",
+        "form": form,
+        "is_update": False,
+    }
+    return render(request, "experience_form.html", context)
+
+@login_required(login_url="/login/")
+def update_experience(request, experience_id):
+    if not can_edit(request.user):
+        raise PermissionDenied
+    
+    experience = get_object_or_404(Experience, pk=experience_id)
+    form = ExperienceForm(request.POST or None, instance=experience)
+    
+    if request.method == "POST" and form.is_valid():
+        input_secret = form.cleaned_data.get("secret_code")
+        
+        if input_secret == settings.PORTFOLIO_SECRET:
+            form.save()
+            messages.success(request, "Experience berhasil diperbarui!")
+            return redirect("main:show_experience")
+        else:
+            messages.error(request, "Kodemu salah wak! waduh")
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wak.")
+            
+        context = {
+            "name": "Kevin Fauzan Arjuna",
+            "form": form,
+            "experience": experience,
+            "is_update": True,
+        }
+        return render(request, "experience_form.html", context)
+
+
+
+
+
+# --------------------------------
+#       PROJECT FUNCTION
+#---------------------------------
+
+def show_project(request):
+    title_query = request.GET.get("title", "").strip()
+    projects = Project.objects.prefetch_related('starred_by').all()
+
+    if title_query:
+        projects = projects.filter(title__icontains=title_query)
+
+    context = {
+        "name": "Kevin Fauzan Arjuna",
+        # sebagai fallback progressive enhancement kalau JS gagal.
+        "featured_project": projects,
+        "title_query": title_query,
+        "can_edit": can_edit(request.user),
+        "form": ProjectForm(),
+    }
+    return render(request, "project.html", context)
 
 @require_POST
 def create_project_ajax(request):
@@ -155,22 +331,6 @@ def get_experience_json(request):
     return HttpResponse(experiences_json, content_type="application/json")
 
 
-def show_project(request):
-    title_query = request.GET.get("title", "").strip()
-    projects = Project.objects.prefetch_related('starred_by').all()
-
-    if title_query:
-        projects = projects.filter(title__icontains=title_query)
-
-    context = {
-        "name": "Kevin Fauzan Arjuna",
-        # sebagai fallback progressive enhancement kalau JS gagal.
-        "featured_project": projects,
-        "title_query": title_query,
-        "can_edit": can_edit(request.user),
-        "form": ProjectForm(),
-    }
-    return render(request, "project.html", context)
 
 
 @login_required(login_url="/login/")
@@ -186,21 +346,6 @@ def delete_project(request, project_id):
         return redirect("main:show_project")
 
     return redirect("main:show_project")
-
-@login_required(login_url="/login/")
-def delete_experience(request, experience_id):
-    if not request.user.is_superuser:
-        raise PermissionDenied
-    
-    experience = get_object_or_404(Experience, pk=experience_id)
-
-    if request.method == "POST":
-        experience.delete()
-        messages.success(request, "Experience berhasil dihapus!")
-        return redirect("main:show_experience")
-
-    return redirect("main:show_experience")
-
 
 @login_required(login_url="/login/")
 def create_project(request):
@@ -267,56 +412,3 @@ def toggle_star(request, project_id):
             project.starred_by.add(request.user)
 
     return redirect("main:show_project")
-
-@login_required(login_url="/login/")
-def create_experience(request):
-    if not request.user.is_superuser:
-        raise PermissionDenied
-
-    form = ExperienceForm(request.POST or None)
-
-    if request.method == "POST" and form.is_valid():
-        input_secret = form.cleaned_data.get("secret_code")
-        
-        if input_secret == settings.PORTFOLIO_SECRET:
-            form.save()
-            messages.success(request, "Experience baru berhasil ditambahkan!")
-            return redirect("main:show_experience")
-        else:
-            messages.error(request, "Kodemu salah wak! Waduh")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
-            
-    context = {
-        "name": "Kevin Fauzan Arjuna",
-        "form": form,
-        "is_update": False,
-    }
-    return render(request, "experience_form.html", context)
-
-
-@login_required(login_url="/login/")
-def update_experience(request, experience_id):
-    if not can_edit(request.user):
-        raise PermissionDenied
-
-    experience = get_object_or_404(Experience, pk=experience_id)
-    form = ExperienceForm(request.POST or None, instance=experience)
-
-    if request.method == "POST" and form.is_valid():
-        input_secret = form.cleaned_data.get("secret_code")
-
-        if input_secret == settings.PORTFOLIO_SECRET:
-            form.save()
-            messages.success(request, "Experience berhasil diperbarui!")
-            return redirect("main:show_experience")
-        else:
-            messages.error(request, "Kodemu salah wak! Waduh")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
-
-    context = {
-        "name": "Kevin Fauzan Arjuna",
-        "form": form,
-        "experience": experience,
-        "is_update": True,
-    }
-    return render(request, "experience_form.html", context)
