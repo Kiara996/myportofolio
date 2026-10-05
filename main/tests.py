@@ -3,7 +3,7 @@ import uuid
 
 from django.contrib.auth.models import Group, User
 from django.contrib.messages import get_messages
-from django.test import TestCase
+from django.test import TestCase, Client
 from django.urls import reverse
 from django.utils import timezone
 
@@ -29,6 +29,14 @@ def make_editor(client=None, username="editor"):
         client.force_login(editor)
     return editor
 
+def make_experience(**overrides):
+    data = {
+        "title": "Asisten Dosen PBP",
+        "description": "Membantu mahasiswa memahami pengembangan web.",
+        "category": "part-time",
+    }
+    data.update(overrides)
+    return Experience.objects.create(**data)
 
 def ssr_html(response):
     """HTML server-rendered saja, tanpa inline <script> yang mengandung
@@ -241,7 +249,7 @@ class ExperienceJsonApiTest(TestCase):
         data = json.loads(response.content)
 
         self.assertEqual(len(data), 1)
-        self.assertEqual(data[0]["model"], "main.experience")
+        self.assertEqual(data[0]["pk"], str(self.experience.id))
         self.assertEqual(data[0]["fields"]["title"], self.experience.title)
 
 
@@ -431,6 +439,256 @@ class CreateExperienceTest(TestCase):
         self.assertFalse(Experience.objects.filter(title=self.valid_payload["title"]).exists())
         self.assertContains(response, "Koentji tidak sesuai coba lagi wir.")
 
+class ExperiencePageSkeletonTest(TestCase):
+    def setUp(self):
+        self.experience = make_experience()
+
+    def test_page_has_ajax_skeleton_and_endpoints(self):
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertEqual(response.status_code, 200)
+        for element_id in ('id="loading"', 'id="error"', 'id="empty"', 'id="grid"'):
+            self.assertContains(response, element_id)
+        self.assertContains(response, reverse("main:get_experience_json"))
+        self.assertContains(response, "<noscript>", html=False)
+
+    def test_modal_only_rendered_for_superuser(self):
+        anonymous = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(anonymous, 'id="add-experience-modal"')
+
+        login_as_superuser(self.client)
+        owner = self.client.get(reverse("main:show_experience"))
+        self.assertContains(owner, 'id="add-experience-modal"')
+        self.assertContains(owner, 'id="experience-form"')
+
+    def test_js_does_not_hardcode_status_labels(self):
+        """Label status datang dari JSON, bukan literal di JS."""
+        self.experience.ended_at = timezone.now()
+        self.experience.save()
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertNotContains(response, "Sedang berlangsung")
+
+
+class ExperienceJsonManualTest(TestCase):
+    def setUp(self):
+        self.experience = make_experience()
+        self.url = reverse("main:get_experience_json")
+
+    def test_response_shape_uses_pk_and_fields(self):
+        response = self.client.get(self.url)
+        data = json.loads(response.content)
+
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertEqual(data[0]["pk"], str(self.experience.id))
+        fields = data[0]["fields"]
+        self.assertEqual(fields["title"], self.experience.title)
+        self.assertEqual(fields["category_display"], "Part-Time")
+        self.assertEqual(fields["status_display"], "Sedang berlangsung")
+        self.assertTrue(fields["is_ongoing"])
+
+    def test_completed_experience_status(self):
+        self.experience.ended_at = timezone.now()
+        self.experience.save()
+        fields = json.loads(self.client.get(self.url).content)[0]["fields"]
+
+        self.assertEqual(fields["status_display"], "Selesai")
+        self.assertFalse(fields["is_ongoing"])
+
+    def test_star_info_for_anonymous_is_not_starred(self):
+        sasha = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.experience.starred_by.add(sasha)
+        fields = json.loads(self.client.get(self.url).content)[0]["fields"]
+
+        self.assertEqual(fields["star_count"], 1)
+        self.assertFalse(fields["is_starred"])
+        self.assertEqual(fields["starred_by_names"], "sasha")
+
+    def test_star_info_reflects_logged_in_user(self):
+        sasha = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        rian = User.objects.create_user(username="rian", password=STRONG_PASSWORD)
+        self.experience.starred_by.add(sasha)
+
+        self.client.force_login(sasha)
+        self.assertTrue(json.loads(self.client.get(self.url).content)[0]["fields"]["is_starred"])
+
+        self.client.force_login(rian)
+        self.assertFalse(json.loads(self.client.get(self.url).content)[0]["fields"]["is_starred"])
+
+    def test_title_filter(self):
+        make_experience(title="Volunteer Mengajar Coding", category="volunteer")
+        data = json.loads(self.client.get(self.url, {"title": "volunteer"}).content)
+
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["fields"]["title"], "Volunteer Mengajar Coding")
+
+    def test_filter_without_match_returns_empty_list(self):
+        self.assertEqual(json.loads(self.client.get(self.url, {"title": "zzz"}).content), [])
+
+    def test_json_does_not_leak_account_details_or_secret(self):
+        user = User.objects.create_user(username="sasha", email="s@example.com", password=STRONG_PASSWORD)
+        self.experience.starred_by.add(user)
+        body = self.client.get(self.url).content.decode()
+
+        for secret in ("password", "s@example.com", "is_superuser", settings.PORTFOLIO_SECRET):
+            self.assertNotIn(secret, body)
+
+
+class CreateExperienceAjaxTest(TestCase):
+    def setUp(self):
+        self.url = reverse("main:create_experience_ajax")
+        self.payload = {
+            "title": "Freelance Photographer di Bali",
+            "description": "Dokumentasi acara pernikahan dan prewedding.",
+            "category": "freelance",
+            "secret_code": settings.PORTFOLIO_SECRET,
+        }
+
+    def test_owner_creates_experience_and_gets_201(self):
+        login_as_superuser(self.client)
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 201)
+        pk = json.loads(response.content)["pk"]
+        self.assertTrue(Experience.objects.filter(pk=pk, title=self.payload["title"]).exists())
+
+    def test_wrong_secret_code_returns_400(self):
+        login_as_superuser(self.client)
+        response = self.client.post(self.url, {**self.payload, "secret_code": "salah"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("secret_code", json.loads(response.content)["errors"])
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_missing_secret_code_returns_400(self):
+        login_as_superuser(self.client)
+        payload = {k: v for k, v in self.payload.items() if k != "secret_code"}
+        response = self.client.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_missing_title_returns_400_with_field_error(self):
+        login_as_superuser(self.client)
+        payload = {k: v for k, v in self.payload.items() if k != "title"}
+        response = self.client.post(self.url, payload)
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("title", json.loads(response.content)["errors"])
+
+    def test_script_payload_in_title_is_rejected(self):
+        login_as_superuser(self.client)
+        response = self.client.post(
+            self.url, {**self.payload, "title": "<img src=\"x\" onerror=\"alert('XSS!')\">"}
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_html_tags_are_stripped_from_text_fields(self):
+        login_as_superuser(self.client)
+        response = self.client.post(
+            self.url,
+            {**self.payload, "title": "Halo <b>dunia</b>", "description": "Isi <script>alert(1)</script>teks"},
+        )
+
+        self.assertEqual(response.status_code, 201)
+        experience = Experience.objects.get()
+        self.assertEqual(experience.title, "Halo dunia")
+        self.assertNotIn("<", experience.description)
+
+    def test_description_with_only_tags_is_rejected(self):
+        login_as_superuser(self.client)
+        response = self.client.post(self.url, {**self.payload, "description": "<b></b>"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("description", json.loads(response.content)["errors"])
+
+    def test_javascript_url_in_thumbnail_is_rejected(self):
+        login_as_superuser(self.client)
+        response = self.client.post(self.url, {**self.payload, "thumbnail": "javascript:alert(1)"})
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("thumbnail", json.loads(response.content)["errors"])
+
+    def test_anonymous_gets_json_403_not_redirect(self):
+        response = self.client.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_regular_user_gets_403(self):
+        user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.client.force_login(user)
+
+        self.assertEqual(self.client.post(self.url, self.payload).status_code, 403)
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_editor_cannot_create(self):
+        make_editor(self.client)
+
+        self.assertEqual(self.client.post(self.url, self.payload).status_code, 403)
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_get_is_not_allowed(self):
+        login_as_superuser(self.client)
+
+        self.assertEqual(self.client.get(self.url).status_code, 405)
+
+    def test_post_without_csrf_token_is_rejected(self):
+        owner = User.objects.create_superuser(username="owner2", password="owner-pass-123")
+        strict = Client(enforce_csrf_checks=True)
+        strict.force_login(owner)
+        response = strict.post(self.url, self.payload)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(Experience.objects.count(), 0)
+
+    def test_post_with_csrf_header_is_accepted(self):
+        owner = User.objects.create_superuser(username="owner2", password="owner-pass-123")
+        strict = Client(enforce_csrf_checks=True)
+        strict.force_login(owner)
+        strict.get(reverse("main:show_experience"))  # server menyetel cookie csrftoken
+        token = strict.cookies["csrftoken"].value
+        response = strict.post(self.url, self.payload, HTTP_X_CSRFTOKEN=token)
+
+        self.assertEqual(response.status_code, 201)
+
+
+class ToggleExperienceStarTest(TestCase):
+    def setUp(self):
+        self.experience = make_experience()
+        self.user = User.objects.create_user(username="sasha", password=STRONG_PASSWORD)
+        self.url = reverse("main:toggle_experience_star", args=[self.experience.id])
+
+    def test_post_toggles_star_on_and_off(self):
+        self.client.force_login(self.user)
+
+        response = self.client.post(self.url)
+        self.assertRedirects(response, reverse("main:show_experience"))
+        self.assertIn(self.user, self.experience.starred_by.all())
+
+        self.client.post(self.url)
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_get_does_not_change_star(self):
+        self.client.force_login(self.user)
+        self.client.get(self.url)
+
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_anonymous_is_redirected_to_login(self):
+        response = self.client.post(self.url)
+
+        self.assertRedirects(response, f'{reverse("main:login")}?next={self.url}')
+        self.assertEqual(self.experience.starred_by.count(), 0)
+
+    def test_nonexistent_experience_returns_404(self):
+        self.client.force_login(self.user)
+        response = self.client.post(reverse("main:toggle_experience_star", args=[uuid.uuid4()]))
+
+        self.assertEqual(response.status_code, 404)
 
 class UpdateExperienceTest(TestCase):
     def setUp(self):

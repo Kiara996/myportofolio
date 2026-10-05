@@ -19,13 +19,21 @@ class Experience(models.Model):
     thumbnail = models.URLField(blank=True, null=True)
     started_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(blank=True, null=True)
+    starred_by = models.ManyToManyField(User, related_name="starred_experiences", blank=True)
+    class Meta:
+        ordering = ['-started_at']
+        
     def __str__(self):
         return self.title
     
     @property
     def is_ongoing(self):
         return self.ended_at is None
-
+    
+    @property
+    def status_display(self):
+        """Label status via JSON"""
+        return "Sedang berlangsung" if self.is_ongoing else "Selesai"
 class Project(models.Model):
     EDITING_SOFTWARE_CHOICES = [
         ('lightroom', 'Adobe Lightroom'),
