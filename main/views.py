@@ -98,7 +98,7 @@ def show_experience(request):
     experiences = Experience.objects.prefetch_related("starred_by")
     
     if title_query:
-        experiences = experiences.filter(title__contain=title_query)
+        experiences = experiences.filter(title__icontains=title_query)
         
     context = {
         "name": "Kevin Fauzan Arjuna",
@@ -160,8 +160,7 @@ def create_experience_ajax(request):
                 {"message": "Pengalaman berhasil ditambahkan.", "pk": str(experience.id)},
                 status=201,
             )
-        form.add_error("secret_code", "Koentji tidak sesuai.")
-        
+        form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")        
     return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
 
 @login_required(login_url="/login/")
@@ -232,8 +231,8 @@ def update_experience(request, experience_id):
             return redirect("main:show_experience")
         else:
             messages.error(request, "Kodemu salah wak! waduh")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wak.")
-            
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")            
+        
         context = {
             "name": "Kevin Fauzan Arjuna",
             "form": form,
@@ -363,8 +362,7 @@ def create_project(request):
             return redirect("main:show_project")
         else:
             messages.error(request, "Kode koentji salah!")
-            form.add_error("secret_code", "Koentji tidak sesuai.")
-
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
     context = {
         "name": "Kevin Fauzan Arjuna",
         "form": form,
@@ -390,8 +388,7 @@ def update_project(request, project_id):
             return redirect("main:show_project")
         else:
             messages.error(request, "Kode koentji salah!")
-            form.add_error("secret_code", "Koentji tidak sesuai.")
-
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
     context = {
         "name": "Kevin Fauzan Arjuna",
         "form": form,

@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Experience - {{ name }}{% endblock title %}
 
@@ -13,17 +14,20 @@
                 </div>
                 {% if user.is_superuser %}
                 <a href="{% url 'main:create_experience' %}"
-                    class="button experience-add-button">
-                    <span aria-hidden="true">+</span>
+                    class="button experience-add-button"
+                    popovertarget="add-experience-modal">
+                    <span aria-hidden="     true">+</span>
                     Tambah Pengalaman
                 </a>
                 {% endif %}
             </div>
 
-            <form method="get"
+            <form id="experience-search-form"
+                method="get"
                 action="{% url 'main:show_experience' %}"
                 class="experience-search">
                 <input type="search"
+                    id="search-input"
                     name="title"
                     value="{{ title_query }}"
                     placeholder="Cari berdasarkan nama pengalaman"
@@ -32,40 +36,62 @@
                 <button type="submit" class="button">Cari</button>
             </form>
 
-            <div class="experience-grid">
-                {% for experience in experience_list %}
-                    <article class="experience-card">
-                        <span class="experience-category">
-                            {{ experience.get_category_display }}
-                        </span>
-                        <h2>{{ experience.title }}</h2>
-                        <p class="experience-description">
-                            {{ experience.description }}
-                        </p>
-
-                        {% if experience.is_ongoing %}
-                            <p class="experience-status">Sedang berlangsung</p>
-                        {% else %}
-                            <p class="experience-status">Selesai</p>
-                        {% endif %}
-
-                        <div class="experience-actions">
-                            {% if can_edit %}
-                            <a href="{% url 'main:update_experience' experience.id %}" class="button button-secondary">Edit</a>
-                            {% include "components/experience_delete_modal.html" with experience=experience %}
-                            {% endif %}
-                        </div>
-                    </article>
-                {% empty %}
-                    {% if title_query %}
-                        <p class="empty-state">Tidak ada pengalaman dengan nama tersebut.</p>
-                    {% else %}
-                        <p class="empty-state">
-                            Belum ada pengalaman yang ditambahkan.
-                        </p>
-                    {% endif %}
-                {% endfor %}
+            <div id="loading" class="empty-state hide">
+                <p>Memuat pengalaman...</p>
             </div>
+
+            <div id="error" class="empty-state hide">
+                <p>Gagal memuat data pengalaman. Silakan coba lagi.</p>
+            </div>
+
+            <div id="empty" class="empty-state hide">
+                <p>Belum ada pengalaman yang ditambahkan atau ditemukan.</p>
+            </div>
+
+            <div id="grid" class="experience-grid hide"></div>
+
+            <noscript>
+                <div class="experience-grid">
+                    {% for experience in experience_list %}
+                        <article class="experience-card">
+                            {% if experience.thumbnail %}
+                                <img src="{{ experience.thumbnail  }}"
+                                    alt="Thumbnail {{ experience.title }}"
+                                    class="experience-thumbnail">
+                            {% endif %}
+                            <span class="experience-category">
+                                {{ experience.get_category_display }}
+                            </span>
+                            <h2>{{ experience.title }}</h2>
+                            <p class="experience-description">
+                                {{ experience.description }}
+                            </p>
+
+                            {% if experience.is_ongoing %}
+                                <p class="experience-status">Sedang berlangsung</p>
+                            {% else %}
+                                <p class="experience-status">Selesai</p>
+                            {% endif %}
+
+                            <div class="experience-actions">
+                                {% include "components/experience_star.html" with experience=experience %}
+                                {% if can_edit %}
+                                    <a href="{% url 'main:update_experience' experience.id %}" class="button button-secondary">Edit</a>
+                                {% endif %}
+                                {% if user.is_superuser %}
+                                    {% include "components/experience_delete_modal.html" with experience=experience %}
+                                {% endif %}
+                            </div>
+                        </article>
+                    {% empty %}
+                        {% if title_query %}
+                            <p class="empty-state">Tidak ada pengalaman dengan nama tersebut.</p>
+                        {% else %}
+                            <p class="empty-state">Belum ada pengalaman yang ditambahkan.</p>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            </noscript>
         </div>
     </section>
 </main>
