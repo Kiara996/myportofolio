@@ -4,10 +4,10 @@ from django.contrib import messages
 from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import AuthenticationForm, UserCreationForm
-from django.core import serializers
 from django.core.exceptions import PermissionDenied
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_POST
 
 from main.forms import ProjectForm, ExperienceForm
@@ -76,30 +76,16 @@ def logout_user(request):
 #       EXPERIENCE FUNCTION
 #---------------------------------
 
+@ensure_csrf_cookie
 def show_experience(request):
-    """Render halaman experience, isi diambil lewat AJAX dari get_experience_json"""
-    # json_response = get_experience_json(request)
-    # experiences = serializers.deserialize(
-    #     "json",
-    #     json_response.content.decode("utf-8"),
-    # )
-    # experiences = [experience.object for experience in experiences]
-    # title_query = request.GET.get("title", "").strip()
-    
-    # context = {
-    #     "name": "Kevin Fauzan Arjuna",
-    #     "experience_list": experiences,
-    #     "title_query": title_query,
-    #     "can_edit": can_edit(request.user),
-    # }
-    # return render(request, "experience.html", context)
-    
+    """Render halaman experience, isi diambil lewat AJAX dari get_experience_json.
+    Data SSR di <noscript> hanya sebagai fallback kalau JS mati."""
     title_query = request.GET.get("title", "").strip()
     experiences = Experience.objects.prefetch_related("starred_by")
-    
+
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
-        
+
     context = {
         "name": "Kevin Fauzan Arjuna",
         "experience_list": experiences,
@@ -109,19 +95,20 @@ def show_experience(request):
     }
     return render(request, "experience.html", context)
 
+
 def get_experience_json(request):
-    """Endpoint json experience,  filter lewat path filter ?title="""
+    """Endpoint json experience, filter lewat query param ?title="""
     title_query = request.GET.get("title", "").strip()
     experiences = Experience.objects.prefetch_related("starred_by")
-    
+
     if title_query:
         experiences = experiences.filter(title__icontains=title_query)
-        
+
     data = []
     for experience in experiences:
         starred_users = list(experience.starred_by.all())
         is_starred = request.user in starred_users if request.user.is_authenticated else False
-        
+
         data.append({
             "pk": str(experience.id),
             "fields": {
@@ -139,8 +126,9 @@ def get_experience_json(request):
                 "starred_by_names": ", ".join(u.username for u in starred_users),
             }
         })
-        
+
     return JsonResponse(data, safe=False)
+
 
 @require_POST
 def create_experience_ajax(request):
@@ -148,11 +136,11 @@ def create_experience_ajax(request):
     if not request.user.is_superuser:
         return JsonResponse(
             {"message": "Hanya pemilik portofolio yang dapat menambahkan pengalaman."},
-            status = 403,
+            status=403,
         )
-        
+
     form = ExperienceForm(request.POST)
-    
+
     if form.is_valid():
         if form.cleaned_data.get("secret_code") == settings.PORTFOLIO_SECRET:
             experience = form.save()
@@ -160,53 +148,61 @@ def create_experience_ajax(request):
                 {"message": "Pengalaman berhasil ditambahkan.", "pk": str(experience.id)},
                 status=201,
             )
-        form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")        
+        errors = form.errors.get_json_data()
+        errors["secret_code"] = [
+            {"message": "Koentji tidak sesuai coba lagi wir.", "code": "invalid"}
+        ]
+        return JsonResponse({"errors": errors}, status=400)
+
     return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
 
 @login_required(login_url="/login/")
 def toggle_experience_star(request, experience_id):
     experience = get_object_or_404(Experience, pk=experience_id)
-    
+
     if request.method == "POST":
         if request.user in experience.starred_by.all():
             experience.starred_by.remove(request.user)
         else:
             experience.starred_by.add(request.user)
-            
+
     return redirect("main:show_experience")
+
 
 @login_required(login_url="/login/")
 def delete_experience(request, experience_id):
     if not request.user.is_superuser:
         raise PermissionDenied
-    
+
     experience = get_object_or_404(Experience, pk=experience_id)
-    
+
     if request.method == "POST":
         experience.delete()
         messages.success(request, "Experience berhasil dihapus!")
         return redirect("main:show_experience")
-    
+
     return redirect("main:show_experience")
+
 
 @login_required(login_url="/login/")
 def create_experience(request):
     if not request.user.is_superuser:
         raise PermissionDenied
-    
+
     form = ExperienceForm(request.POST or None)
-    
+
     if request.method == "POST" and form.is_valid():
         input_secret = form.cleaned_data.get("secret_code")
-        
+
         if input_secret == settings.PORTFOLIO_SECRET:
             form.save()
             messages.success(request, "Experience baru berhasil ditambahkan!")
             return redirect("main:show_experience")
         else:
-            messages.error(request, "kodemu salah wak! waduh")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wak.")
-            
+            messages.error(request, "Kodemu salah wak! waduh")
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
+
     context = {
         "name": "Kevin Fauzan Arjuna",
         "form": form,
@@ -214,35 +210,33 @@ def create_experience(request):
     }
     return render(request, "experience_form.html", context)
 
+
 @login_required(login_url="/login/")
 def update_experience(request, experience_id):
     if not can_edit(request.user):
         raise PermissionDenied
-    
+
     experience = get_object_or_404(Experience, pk=experience_id)
     form = ExperienceForm(request.POST or None, instance=experience)
-    
+
     if request.method == "POST" and form.is_valid():
         input_secret = form.cleaned_data.get("secret_code")
-        
+
         if input_secret == settings.PORTFOLIO_SECRET:
             form.save()
             messages.success(request, "Experience berhasil diperbarui!")
             return redirect("main:show_experience")
         else:
             messages.error(request, "Kodemu salah wak! waduh")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")            
-        
-        context = {
-            "name": "Kevin Fauzan Arjuna",
-            "form": form,
-            "experience": experience,
-            "is_update": True,
-        }
-        return render(request, "experience_form.html", context)
+            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
 
-
-
+    context = {
+        "name": "Kevin Fauzan Arjuna",
+        "form": form,
+        "experience": experience,
+        "is_update": True,
+    }
+    return render(request, "experience_form.html", context)
 
 
 # --------------------------------
@@ -266,6 +260,7 @@ def show_project(request):
     }
     return render(request, "project.html", context)
 
+
 @require_POST
 def create_project_ajax(request):
     if not request.user.is_superuser:
@@ -276,13 +271,20 @@ def create_project_ajax(request):
 
     form = ProjectForm(request.POST)
     if form.is_valid():
-        project = form.save()
-        return JsonResponse(
-            {"message": "Proyek berhasil ditambahkan.", "pk": str(project.id)},
-            status=201,
-        )
+        if form.cleaned_data.get("secret_code") == settings.PORTFOLIO_SECRET:
+            project = form.save()
+            return JsonResponse(
+                {"message": "Proyek berhasil ditambahkan.", "pk": str(project.id)},
+                status=201,
+            )
+        errors = form.errors.get_json_data()
+        errors["secret_code"] = [
+            {"message": "Koentji tidak sesuai.", "code": "invalid"}
+        ]
+        return JsonResponse({"errors": errors}, status=400)
 
     return JsonResponse({"errors": form.errors.get_json_data()}, status=400)
+
 
 def get_project_json(request):
     title_query = request.GET.get("title", "").strip()
@@ -290,7 +292,7 @@ def get_project_json(request):
 
     if title_query:
         projects = projects.filter(title__icontains=title_query)
-        
+
     # Konstruksi data JSON secara manual agar bisa menyisipkan Logika Star
     data = []
     for project in projects:
@@ -319,18 +321,6 @@ def get_project_json(request):
 
     return JsonResponse(data, safe=False)
 
-def get_experience_json(request):
-    title_query = request.GET.get("title", "").strip()
-    experiences = Experience.objects.all()
-    
-    if title_query:
-        experiences = experiences.filter(title__icontains=title_query)
-        
-    experiences_json = serializers.serialize("json", experiences)
-    return HttpResponse(experiences_json, content_type="application/json")
-
-
-
 
 @login_required(login_url="/login/")
 def delete_project(request, project_id):
@@ -346,6 +336,7 @@ def delete_project(request, project_id):
 
     return redirect("main:show_project")
 
+
 @login_required(login_url="/login/")
 def create_project(request):
     if not request.user.is_superuser:
@@ -355,14 +346,14 @@ def create_project(request):
 
     if request.method == "POST" and form.is_valid():
         input_secret = form.cleaned_data.get("secret_code")
-        
+
         if input_secret == settings.PORTFOLIO_SECRET:
             form.save()
             messages.success(request, "Proyek baru berhasil ditambahkan!")
             return redirect("main:show_project")
         else:
             messages.error(request, "Kode koentji salah!")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
+            form.add_error("secret_code", "Koentji tidak sesuai.")
     context = {
         "name": "Kevin Fauzan Arjuna",
         "form": form,
@@ -370,15 +361,16 @@ def create_project(request):
     }
     return render(request, "projects_form.html", context)
 
+
 @login_required(login_url="/login/")
 def update_project(request, project_id):
     if not can_edit(request.user):
         raise PermissionDenied
 
     project = get_object_or_404(Project, pk=project_id)
-    
+
     form = ProjectForm(request.POST or None, instance=project)
-    
+
     if request.method == "POST" and form.is_valid():
         input_secret = form.cleaned_data.get("secret_code")
 
@@ -388,7 +380,7 @@ def update_project(request, project_id):
             return redirect("main:show_project")
         else:
             messages.error(request, "Kode koentji salah!")
-            form.add_error("secret_code", "Koentji tidak sesuai coba lagi wir.")
+            form.add_error("secret_code", "Koentji tidak sesuai.")
     context = {
         "name": "Kevin Fauzan Arjuna",
         "form": form,

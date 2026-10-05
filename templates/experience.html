@@ -5,7 +5,14 @@
 
 {% block content %}
 <main>
-    <section class="experience-section" id="experience">
+    <section class="experience-section" id="experience"
+        data-list-endpoint="{% url 'main:get_experience_json' %}"
+        data-create-endpoint="{% url 'main:create_experience_ajax' %}"
+        data-star-url="{% url 'main:toggle_experience_star' '00000000-0000-0000-0000-000000000000' %}"
+        data-edit-url="{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}"
+        data-delete-url="{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}"
+        data-is-superuser="{{ user.is_superuser|yesno:'true,false' }}"
+        data-can-edit="{{ can_edit|yesno:'true,false' }}">
         <div class="container">
             <div class="experience-header">
                 <div>
@@ -13,12 +20,12 @@
                     <h1>Experience</h1>
                 </div>
                 {% if user.is_superuser %}
-                <a href="{% url 'main:create_experience' %}"
+                <button type="button"
                     class="button experience-add-button"
                     popovertarget="add-experience-modal">
-                    <span aria-hidden="     true">+</span>
+                    <span aria-hidden="true">+</span>
                     Tambah Pengalaman
-                </a>
+                </button>
                 {% endif %}
             </div>
 
@@ -55,7 +62,7 @@
                     {% for experience in experience_list %}
                         <article class="experience-card">
                             {% if experience.thumbnail %}
-                                <img src="{{ experience.thumbnail  }}"
+                                <img src="{{ experience.thumbnail }}"
                                     alt="Thumbnail {{ experience.title }}"
                                     class="experience-thumbnail">
                             {% endif %}
@@ -95,4 +102,11 @@
         </div>
     </section>
 </main>
+
+{% if user.is_superuser %}
+    {% include "components/experience_form_modal.html" %}
+{% endif %}
+
+<script src="{% static 'js/utils.js' %}"></script>
+<script src="{% static 'js/experience.js' %}"></script>
 {% endblock content %}
