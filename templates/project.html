@@ -119,11 +119,16 @@
     {% include "components/project_form_modal.html" %}
 {% endif %}
 
+{% csrf_token %}
 <script>
 // Konfigurasi
-const BASE_PROJECTS_ENDPOINT = "{% url 'main:get_project_json' %}";
-const CREATE_PROJECT_ENDPOINT = "{% url 'main:create_project_ajax' %}";
+const BASE_PROJECTS_ENDPOINT = "{% url 'api:project-list' %}";
+const DETAIL_PROJECT_ENDPOINT = "{% url 'api:project-detail' '00000000-0000-0000-0000-000000000000' %}";
+const STAR_PROJECT_ENDPOINT = "{% url 'api:project-star' '00000000-0000-0000-0000-000000000000' %}";
+const EDIT_PROJECT_ENDPOINT = "{% url 'main:update_project' '00000000-0000-0000-0000-000000000000' %}";
 const IS_SUPERUSER = "{{ user.is_superuser|yesno:'true,false' }}" === "true";
+const IS_AUTHENTICATED = "{{ user.is_authenticated|yesno:'true,false' }}" === "true";
+const CAN_EDIT = "{{ can_edit|yesno:'true,false' }}" === "true";
 let projectsAbortController;
 
 // Elemen DOM
@@ -144,18 +149,10 @@ if (ssrGallery) ssrGallery.classList.add('hide');
 
 // 1. Helper Ambil Cookie CSRF
 function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+    const prefix = `${name}=`;
+    const cookie = document.cookie.split(';').map(value => value.trim())
+        .find(value => value.startsWith(prefix));
+    return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
 }
 
 // 2. Function Escaping HTML (Proteksi Utama XSS Client-side)
@@ -168,6 +165,10 @@ function escapeHtml(value) {
         .replaceAll("'", '&#39;');
 }
 
+function projectEndpoint(pattern, id) {
+    return pattern.replace('00000000-0000-0000-0000-000000000000', id);
+}
+
 // 3. Tampilan Section State
 function displayPageSection({ showLoading = false, showError = false, showEmpty = false, showGrid = false }) {
     loadingState.classList.toggle('hide', !showLoading);
@@ -177,36 +178,33 @@ function displayPageSection({ showLoading = false, showError = false, showEmpty 
 }
 
 // 4. Render Kartu Proyek dengan Sanitasi XSS
-function buildProjectCardElement(item) {
-    const project = item.fields;
-    const projectId = item.pk;
+function buildProjectCardElement(project) {
+    const article = document.createElement('article');
+    article.className = 'project-card';
 
-    const articleElement = document.createElement('article');
-    articleElement.className = 'project-card';
-
-    const imageHtml = project.image_url 
+    const imageHtml = project.image_url
         ? `<div class="project-frame"><img src="${escapeHtml(project.image_url)}" alt="${escapeHtml(project.title)}"></div>`
         : '';
 
-    const deleteUrl = "{% url 'main:delete_project' '00000000-0000-0000-0000-000000000000' %}"
-        .replace('00000000-0000-0000-0000-000000000000', projectId);
-    const starUrl = "{% url 'main:toggle_star' '00000000-0000-0000-0000-000000000000' %}"
-        .replace('00000000-0000-0000-0000-000000000000', projectId);
+    const star = IS_AUTHENTICATED
+        ? `<button type="button" class="button button-star${project.is_starred ? ' is-starred' : ''}"
+            data-action="star" data-id="${escapeHtml(project.id)}"
+            title="${escapeHtml(project.starred_by_names)}">
+            <span aria-hidden="true">★</span>
+            ${project.is_starred ? 'Unstar' : 'Star'}
+            <span class="star-count">${project.star_count}</span></button>`
+        : `<a href="{% url 'main:login' %}" class="button">Login to star (${project.star_count})</a>`;
 
-    const deleteHtml = IS_SUPERUSER 
-        ? `<form method="post" action="${deleteUrl}" style="display:inline;">
-            {% csrf_token %}
-            <button type="submit" class="button button-danger" onclick="return confirm('Yakin ingin menghapus project ini?');">Hapus</button>
-        </form>`
+    const edit = CAN_EDIT
+        ? `<a href="${projectEndpoint(EDIT_PROJECT_ENDPOINT, project.id)}" class="button button-secondary">Edit</a>`
         : '';
 
-    const isStarredClass = project.is_starred ? " is-starred" : "";
-    const starText = project.is_starred ? "Unstar" : "Star";
-    const starTitle = project.star_count > 0 
-        ? `Dibintangi oleh ${escapeHtml(project.starred_by_names)}` 
-        : "Jadilah yang pertama memberi star";
+    const remove = IS_SUPERUSER
+        ? `<button type="button" class="button button-danger" data-action="delete"
+            data-id="${escapeHtml(project.id)}">Hapus</button>`
+        : '';
 
-    const completeCardHtml = `
+    article.innerHTML = `
         ${imageHtml}
         <div class="project-detail">
             <h2 class="project-title">${escapeHtml(project.title)}</h2>
@@ -228,130 +226,116 @@ function buildProjectCardElement(item) {
             </dl>
             <p class="project-story">${escapeHtml(project.story) || ''}</p>
             <div class="project-card-actions">
-                <div class="project-actions">
-                    <form method="post" action="${starUrl}" class="star-form">
-                        {% csrf_token %}
-                        <button type="submit" class="button button-star${isStarredClass}" title="${starTitle}">
-                            <span aria-hidden="true">★</span>
-                            ${starText}
-                            <span class="star-count">${project.star_count}</span>
-                        </button>
-                    </form>
-                    ${deleteHtml}
-                </div>
+                <div class="project-actions">${star}${edit}${remove}</div>
             </div>
         </div>
     `;
-
-    articleElement.innerHTML = completeCardHtml;
-    return articleElement;
+    return article;
 }
 
-// 5. Tutup Modal Proyek
-function closeProjectModal() {
-    const modal = document.getElementById("add-project-modal");
-    if (modal) modal.hidePopover();
-}
-
-// 6. Fetch Data Proyek via AJAX
-async function fetchProjects(searchQuery = "") {
+// 5. Fetch Data Proyek via AJAX (API DRF)
+async function fetchProjects(searchQuery = '') {
     if (projectsAbortController) projectsAbortController.abort();
     projectsAbortController = new AbortController();
 
     try {
         displayPageSection({ showLoading: true });
-        
-        const url = searchQuery ? `${BASE_PROJECTS_ENDPOINT}?title=${encodeURIComponent(searchQuery)}` : BASE_PROJECTS_ENDPOINT;
-        
+        const url = new URL(BASE_PROJECTS_ENDPOINT, window.location.origin);
+        if (searchQuery) url.searchParams.set('title', searchQuery);
         const response = await fetch(url, {
-            headers: { 'Accept': 'application/json' },
+            headers: { Accept: 'application/json' },
             signal: projectsAbortController.signal,
         });
-
-        if (!response.ok) throw new Error('Failed to fetch data');
-
-        const projectData = await response.json();
-
-        if (projectData.length === 0) {
-            displayPageSection({ showEmpty: true });
-        } else {
-            gridContainer.innerHTML = '';
-            projectData.forEach(item => {
-                gridContainer.appendChild(buildProjectCardElement(item));
-            });
-            displayPageSection({ showGrid: true });
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const projects = await response.json();
+        gridContainer.replaceChildren(...projects.map(buildProjectCardElement));
+        displayPageSection({ showGrid: projects.length > 0, showEmpty: projects.length === 0 });
     } catch (error) {
         if (error.name === 'AbortError') return;
-        console.error('Error loading projects:', error);
+        console.error(error);
         displayPageSection({ showError: true });
     }
+}
+
+function apiErrorMessage(data, status) {
+    const messages = Object.values(data).flat().filter(value => typeof value === 'string');
+    return messages.join(' ') || `Request failed (HTTP ${status}).`;
+}
+
+// 6. Tulis Data Proyek (POST/DELETE) lewat API DRF
+async function writeProject(url, method, payload) {
+    const response = await fetch(url, {
+        method,
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+        },
+        body: payload === undefined ? undefined : JSON.stringify(payload),
+    });
+    if (response.status === 204) return null;
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(apiErrorMessage(data, response.status));
+    return data;
 }
 
 // 7. Handler Tambah Proyek via AJAX Modal
 async function addProject(event) {
     event.preventDefault();
-
-    const submitButton = projectForm.querySelector('button[type="submit"]');
-    submitButton.disabled = true;
-
+    const button = projectForm.querySelector('button[type="submit"]');
+    button.disabled = true;
     try {
-        const response = await fetch(CREATE_PROJECT_ENDPOINT, {
-            method: 'POST',
-            headers: { 'X-CSRFToken': getCookie('csrftoken') },
-            body: new FormData(projectForm),
-        });
-        const result = await response.json().catch(() => ({}));
-
-        if (response.ok) {
-            projectForm.reset();
-            closeProjectModal();
-            if (typeof showToast === 'function') {
-                showToast('Berhasil', 'Proyek baru berhasil ditambahkan!', 'success');
-            }
-            fetchProjects(searchInput.value.trim());
-        } else {
-            let errorMsg = 'Gagal menambahkan proyek.';
-            if (result.errors) {
-                errorMsg = Object.values(result.errors).flat().map(e => e.message).join(' ');
-            } else if (result.message) {
-                errorMsg = result.message;
-            }
-            if (typeof showToast === 'function') {
-                showToast('Gagal', errorMsg, 'error');
-            }
-        }
+        const fields = new FormData(projectForm);
+        const payload = Object.fromEntries([
+            'title', 'story', 'camera_gear', 'capture_settings',
+            'editing_software', 'location_taken', 'taken_at', 'image_url',
+        ].map(name => [name, fields.get(name)]));
+        await writeProject(BASE_PROJECTS_ENDPOINT, 'POST', payload);
+        projectForm.reset();
+        document.getElementById('add-project-modal').hidePopover();
+        showToast('Berhasil', 'Proyek baru berhasil ditambahkan!', 'success');
+        await fetchProjects(searchInput.value.trim());
     } catch (error) {
-        console.error('Error adding project:', error);
-        if (typeof showToast === 'function') {
-            showToast('Error', 'Tidak dapat terhubung ke server.', 'error');
-        }
+        showToast('Gagal menambahkan proyek', error.message, 'error');
     } finally {
-        submitButton.disabled = false;
+        button.disabled = false;
     }
 }
 
-// 8. Event Listeners
-function searchProjects() {
-    fetchProjects(searchInput.value.trim());
-}
+if (projectForm) projectForm.addEventListener('submit', addProject);
 
-searchInput.addEventListener("input", function() {
-    clearTimeout(searchDebounceTimer);
-    searchDebounceTimer = setTimeout(searchProjects, SEARCH_DEBOUNCE_DELAY);
+// 8. Star & Hapus via Event Delegation
+gridContainer.addEventListener('click', async function(event) {
+    const button = event.target.closest('button[data-action]');
+    if (!button || button.disabled) return;
+    const action = button.dataset.action;
+    if (action === 'delete' && !window.confirm('Yakin ingin menghapus project ini?')) return;
+    button.disabled = true;
+    try {
+        const pattern = action === 'star' ? STAR_PROJECT_ENDPOINT : DETAIL_PROJECT_ENDPOINT;
+        await writeProject(projectEndpoint(pattern, button.dataset.id),
+            action === 'star' ? 'POST' : 'DELETE');
+        showToast('Berhasil', action === 'star' ? 'Star diperbarui.' : 'Proyek dihapus.', 'success');
+        await fetchProjects(searchInput.value.trim());
+    } catch (error) {
+        showToast('Gagal', error.message, 'error');
+    } finally {
+        button.disabled = false;
+    }
 });
 
-searchForm.addEventListener("submit", function(event) {
+// 9. Pencarian
+searchInput.addEventListener('input', function() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => fetchProjects(searchInput.value.trim()), SEARCH_DEBOUNCE_DELAY);
+});
+
+searchForm.addEventListener('submit', function(event) {
     event.preventDefault();
     clearTimeout(searchDebounceTimer);
-    searchProjects();
+    fetchProjects(searchInput.value.trim());
 });
 
-if (projectForm) {
-    projectForm.addEventListener('submit', addProject);
-}
-
-// Jalankan saat pertama kali dimuat
 fetchProjects(searchInput.value.trim());
 </script>
 {% endblock content %}
