@@ -132,7 +132,19 @@ class ExperienceForm(ModelForm):
         return title
 
     def clean_description(self):
+        description = strip_tags(self.cleaned_data.get("description", "")).strip()
+        if not description:
+            raise ValidationError("Deskripsi pengalaman tidak boleh hanya berisi tag HTML.")
         return strip_tags(self.cleaned_data.get("description", "")).strip()
+    
+    def clean_thumbnail(self):
+        thumbnail = self.cleaned_data.get("thumbnail") or ""
+        if "drive.google.com" in thumbnail and "thumbnail?id=" not in thumbnail:
+            raise ValidationError(
+                "Link Google Drive harus dalam format thumbnail, contoh: "
+                "https://drive.google.com/thumbnail?id=FILE_ID&sz=w1000."
+            )
+        return thumbnail
 
     class Meta:
         model = Experience
