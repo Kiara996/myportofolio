@@ -56,17 +56,24 @@ def project_detail(request, project_id):
     return Response(serializer.data)
 
 
+def toggle_star(request, queryset, serializer_class, object_id):
+    obj = get_object_or_404(queryset, pk=object_id)
+    if obj.starred_by.filter(pk=request.user.pk).exists():
+        obj.starred_by.remove(request.user)
+    else:
+        obj.starred_by.add(request.user)
+    obj = queryset.get(pk=object_id)
+    return Response(serializer_class(obj, context={"request": request}).data)
+
+
 @api_view(["POST"])
 @authentication_classes([SessionAuthentication])
 @permission_classes([IsAuthenticated])
 def project_star(request, project_id):
-    project = get_object_or_404(Project, pk=project_id)
-    if project.starred_by.filter(pk=request.user.pk).exists():
-        project.starred_by.remove(request.user)
-    else:
-        project.starred_by.add(request.user)
-    serializer = ProjectSerializer(project, context={"request": request})
-    return Response(serializer.data)
+    return toggle_star(
+        request, Project.objects.prefetch_related("starred_by"),
+        ProjectSerializer, project_id,
+    )
 
 
 @api_view(["GET", "HEAD", "POST"])
@@ -111,3 +118,12 @@ def experience_detail(request, experience_id):
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data)
+
+@api_view(["POST"])
+@authentication_classes([SessionAuthentication])
+@permission_classes([IsAuthenticated])
+def experience_star(request, experience_id):
+    return toggle_star(
+        request, Experience.objects.prefetch_related("starred_by"),
+        ExperienceSerializer, experience_id,
+    )

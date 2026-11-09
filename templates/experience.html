@@ -6,11 +6,11 @@
 {% block content %}
 <main>
     <section class="experience-section" id="experience"
-        data-list-endpoint="{% url 'main:get_experience_json' %}"
-        data-create-endpoint="{% url 'main:create_experience_ajax' %}"
-        data-star-url="{% url 'main:toggle_experience_star' '00000000-0000-0000-0000-000000000000' %}"
-        data-edit-url="{% url 'main:update_experience' '00000000-0000-0000-0000-000000000000' %}"
-        data-delete-url="{% url 'main:delete_experience' '00000000-0000-0000-0000-000000000000' %}"
+        data-list-endpoint="{% url 'api:experience-list' %}"
+        data-detail-url="{% url 'api:experience-detail' '00000000-0000-0000-0000-000000000000' %}"
+        data-star-url="{% url 'api:experience-star' '00000000-0000-0000-0000-000000000000' %}"
+        data-login-url="{% url 'main:login' %}"
+        data-is-authenticated="{{ user.is_authenticated|yesno:'true,false' }}"
         data-is-superuser="{{ user.is_superuser|yesno:'true,false' }}"
         data-can-edit="{{ can_edit|yesno:'true,false' }}">
         <div class="container">
@@ -105,6 +105,9 @@
 
 {% if user.is_superuser %}
     {% include "components/experience_form_modal.html" %}
+{% endif %}
+{% if can_edit %}
+    {% include "components/experience_edit_modal.html" %}
 {% endif %}
 
 <script src="{% static 'js/utils.js' %}"></script>

@@ -54,6 +54,7 @@ Jawaban pertanyaan reflektif dan catatan pengerjaan setiap minggu (disimpan fold
 - [Tugas 2 - Implementasi MVT pada Django](docs/tugas/tugas2.md)
 - [Tugas 3 - Form & Data Delivery](docs/tugas/tugas3.md)
 - [Tugas 5 - Web Interactivity with JavaScript](docs/tugas/tugas5.md)
+- [Tugas 6 - Django REST Framework Implementation](docs/tugas/tugas6.md)
 
 ## Deployment
 
