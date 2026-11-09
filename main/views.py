@@ -92,6 +92,7 @@ def show_experience(request):
         "title_query": title_query,
         "can_edit": can_edit(request.user),
         "form": ExperienceForm(),
+        "edit_form": ExperienceForm(auto_id="edit_%s"),
     }
     return render(request, "experience.html", context)
 

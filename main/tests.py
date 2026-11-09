@@ -449,8 +449,62 @@ class ExperiencePageSkeletonTest(TestCase):
         self.assertEqual(response.status_code, 200)
         for element_id in ('id="loading"', 'id="error"', 'id="empty"', 'id="grid"'):
             self.assertContains(response, element_id)
-        self.assertContains(response, reverse("main:get_experience_json"))
+        self.assertContains(response, reverse("api:experience-list"))
         self.assertContains(response, "<noscript>", html=False)
+
+    def test_page_uses_api_v1_endpoints_instead_of_legacy_ones(self):
+        response = self.client.get(reverse("main:show_experience"))
+        zero = "00000000-0000-0000-0000-000000000000"
+
+        self.assertContains(response, f'data-detail-url="{reverse("api:experience-detail", args=[zero])}"')
+        self.assertContains(response, f'data-star-url="{reverse("api:experience-star", args=[zero])}"')
+        self.assertNotContains(response, 'data-create-endpoint')
+        self.assertNotContains(response, reverse("main:get_experience_json"))
+
+    def test_edit_modal_only_rendered_for_users_who_can_edit(self):
+        anonymous = self.client.get(reverse("main:show_experience"))
+        self.assertNotContains(anonymous, 'id="edit-experience-modal"')
+
+        regular = User.objects.create_user(username="sasha", password="Sasha-Str0ng-Pass!")
+        self.client.force_login(regular)
+        self.assertNotContains(self.client.get(reverse("main:show_experience")), 'id="edit-experience-modal"')
+
+        make_editor(self.client)
+        editor = self.client.get(reverse("main:show_experience"))
+        self.assertContains(editor, 'id="edit-experience-modal"')
+        self.assertContains(editor, 'id="experience-edit-form"')
+        self.assertNotContains(editor, 'id="add-experience-modal"')  # Editor tidak boleh menambah
+
+    def test_edit_and_add_forms_do_not_share_input_ids(self):
+        login_as_superuser(self.client)
+        html = self.client.get(reverse("main:show_experience")).content.decode()
+
+        self.assertEqual(html.count('id="id_title"'), 1)
+        self.assertEqual(html.count('id="edit_title"'), 1)
+
+    def test_edit_modal_has_no_secret_code_field(self):
+        login_as_superuser(self.client)
+        html = self.client.get(reverse("main:show_experience")).content.decode()
+        edit_modal = html[html.index('id="edit-experience-modal"'):]
+
+        self.assertNotIn("secret_code", edit_modal.split("</form>")[0])
+
+    def test_page_sets_csrf_cookie_for_regular_user(self):
+        """Star dikirim lewat fetch(), jadi cookie csrftoken harus tersedia."""
+        regular = User.objects.create_user(username="sasha", password="Sasha-Str0ng-Pass!")
+        self.client.force_login(regular)
+        response = self.client.get(reverse("main:show_experience"))
+
+        self.assertIn("csrftoken", response.cookies)
+
+    def test_page_script_sends_csrf_header_and_escapes_output(self):
+        from pathlib import Path
+
+        script = (Path(settings.BASE_DIR) / "static" / "js" / "experience.js").read_text(encoding="utf-8")
+
+        self.assertIn("X-CSRFToken", script)
+        self.assertIn("escapeHtml(experience.title)", script)
+        self.assertIn("'PATCH'", script)
 
     def test_modal_only_rendered_for_superuser(self):
         anonymous = self.client.get(reverse("main:show_experience"))

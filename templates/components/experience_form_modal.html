@@ -25,6 +25,8 @@
             class="experience-form">
             {% csrf_token %}
             {% for field in form %}
+                {# Koentji hanya dipakai form fallback tanpa JS; API memakai hak akses owner. #}
+                {% if field.name == "secret_code" %}<noscript>{% endif %}
                 <div class="form-group">
                     <label for="{{ field.id_for_label }}">{{ field.label }}</label>
                     {{ field }}
@@ -35,6 +37,7 @@
                         <p class="form-error">{{ error }}</p>
                     {% endfor %}
                 </div>
+                {% if field.name == "secret_code" %}</noscript>{% endif %}
             {% endfor %}
             <div class="experience-form-modal__actions">
                 <button type="button"

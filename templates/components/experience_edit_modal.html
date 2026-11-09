@@ -1,0 +1,43 @@
+{# Modal edit: dikirim lewat fetch() PATCH ke API; diisi ulang oleh experience.js #}
+<div id="edit-experience-modal"
+    class="experience-form-modal"
+    popover="auto"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="edit-experience-modal-title">
+    <button type="button"
+            class="experience-form-modal__backdrop"
+            popovertarget="edit-experience-modal"
+            popovertargetaction="hide"
+            aria-label="Tutup form edit pengalaman"></button>
+
+    <div class="experience-form-modal__content">
+        <button type="button"
+                class="experience-form-modal__close"
+                popovertarget="edit-experience-modal"
+                popovertargetaction="hide"
+                aria-label="Tutup form edit pengalaman">x</button>
+
+        <h2 id="edit-experience-modal-title">Edit Pengalaman</h2>
+        <form id="experience-edit-form" class="experience-form">
+            {% for field in edit_form %}
+                {% if field.name != "secret_code" %}
+                    <div class="form-group">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.help_text %}
+                            <p class="form-help">{{ field.help_text }}</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            {% endfor %}
+            <div class="experience-form-modal__actions">
+                <button type="button"
+                        class="button button-secondary"
+                        popovertarget="edit-experience-modal"
+                        popovertargetaction="hide">Batal</button>
+                <button type="submit" class="button">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
