@@ -39,6 +39,9 @@ class Project(models.Model):
         ('lightroom', 'Adobe Lightroom'),
         ('photoshop', 'Adobe Photoshop'),
         ('capture-one', 'Capture One'),
+        ('premiere-pro', 'Adobe Premiere Pro'),
+        ('after-effects', 'Adobe After Effects'),
+        ('fl-studio', 'FL Studio'),
         ('none', 'Tanpa Editing / Straight Out of Camera'),
     ]
 
