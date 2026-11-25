@@ -36,7 +36,7 @@ PRODUCTION = os.getenv('PRODUCTION', 'False').lower() == 'true'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "kevin-fauzan-myportofolio.pws.cs.ui.ac.id"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "10.0.2.2", "kevin-fauzan-myportofolio.pws.cs.ui.ac.id"]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://kevin-fauzan-myportofolio.pws.cs.ui.ac.id",
@@ -51,13 +51,16 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
     'main',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -162,3 +165,24 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+
+# Django REST Framework
+# Token dicoba lebih dulu supaya klien mobile tanpa token mendapat 401,
+# sedangkan halaman web tetap memakai session.
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+}
+
+# CORS hanya dibutuhkan Flutter Web. Saat lokal semua origin diizinkan,
+# di produksi diisi lewat CORS_ALLOWED_ORIGINS di .env.prod (dipisah koma).
+CORS_ALLOW_ALL_ORIGINS = not PRODUCTION
+if PRODUCTION:
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip()
+        for origin in os.getenv('CORS_ALLOWED_ORIGINS', '').split(',')
+        if origin.strip()
+    ]
